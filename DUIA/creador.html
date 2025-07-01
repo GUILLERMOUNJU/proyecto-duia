@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUIA - Creador de Cuestionarios</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        :root {
+            --color-primario: #003366; --color-acento: #D44E41; --color-fondo: #f4f6f9;
+            --color-texto: #333333; --color-blanco: #ffffff; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        body { font-family: 'Roboto', sans-serif; background-color: var(--color-fondo); color: var(--color-texto); margin: 0; }
+        .creator-container { width: 100%; max-width: 960px; margin: 30px auto; padding: 20px; }
+        
+        /* --- ESTILO DE CABECERA CORREGIDO --- */
+        .creator-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* <-- Para mover el logo a la derecha */
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .creator-header .title-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .creator-header img { height: 60px; }
+        .creator-header h1 { color: var(--color-primario); margin: 0; }
+
+        .step-card { background-color: var(--color-blanco); border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: var(--shadow-suave); }
+        .step-card h2 { margin-top: 0; color: var(--color-primario); border-bottom: 2px solid var(--color-acento); padding-bottom: 10px; margin-bottom: 20px; }
+        .upload-area input[type="file"] { margin-bottom: 15px; font-size: 1rem; }
+        .btn { padding: 12px 25px; font-size: 1rem; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .btn-primario { background-color: var(--color-primario); color: var(--color-blanco); }
+        .btn-primario:disabled { background-color: #5a6268; cursor: not-allowed;}
+        .loader { text-align: center; padding: 40px; display: none; }
+        .loader p { font-size: 1.1rem; font-weight: 500; color: var(--color-primario); }
+    </style>
+</head>
+<body>
+    <div class="creator-container">
+        <header class="creator-header">
+            <div class="title-group">
+                <h1>DUIA: Creador de Cuestionarios</h1>
+            </div>
+            <img src="https://i.imgur.com/qL3gL8g.png" alt="Logo Facultad de Ingeniería UNJu">
+        </header>
+
+        <section class="step-card">
+            <h2>Paso 1: Cargar Material de Estudio</h2>
+            <div class="upload-area">
+                <p>Sube el archivo PDF de la unidad o tema que quieres evaluar.</p>
+                <input type="file" id="pdf-upload" accept="application/pdf">
+            </div>
+            <div class="loader" id="loader">
+                <p>Leyendo y extrayendo texto del PDF... 📄<br>Este proceso ocurre 100% en tu navegador.</p>
+            </div>
+        </section>
+        
+        </div>
+
+    <script>
+        // 2. Obtenemos la referencia al input del archivo
+        const pdfUploadInput = document.getElementById('pdf-upload');
+        const loader = document.getElementById('loader');
+
+        // Asignamos la función que se ejecutará cuando el usuario elija un archivo
+        pdfUploadInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file || file.type !== 'application/pdf') {
+                alert('Por favor, selecciona un archivo PDF.');
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                // Mostramos el mensaje "Leyendo..."
+                loader.style.display = 'block';
+                const pdfData = new Uint8Array(e.target.result);
+
+                // Le damos los datos a la librería pdf.js
+                const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                let textoCompleto = '';
+
+                // Leemos cada página del PDF
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    textoCompleto += pageText + '\n\n';
+                }
+                
+                // Ocultamos el mensaje "Leyendo..."
+                loader.style.display = 'none';
+
+                // 3. ¡Éxito! Mostramos el texto extraído en la consola
+                console.log("--- TEXTO EXTRAÍDO DEL PDF ---");
+                console.log(textoCompleto);
+                alert("¡PDF procesado con éxito! Revisa la consola (F12) para ver el texto extraído.");
+            };
+
+            // Le decimos al lector que empiece a leer el archivo
+            reader.readAsArrayBuffer(file);
+        }
+    </script>
+</body>
+</html>

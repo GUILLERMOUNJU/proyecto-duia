@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUIA - Asistente Educativo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        :root {
+            --color-principal: #0d6efd; --color-fondo-tarjeta: #f8f9fa; --color-texto-oscuro: #212529;
+            --color-correcto-fondo: #d1e7dd; --color-correcto-borde: #5cb85c;
+            --color-incorrecto-fondo: #f8d7da; --color-incorrecto-borde: #dc3545; --color-boton-rojo: #d9534f;
+            --color-blanco: #ffffff;
+        }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--color-principal); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .main-container { background-color: var(--color-principal); width: 100%; max-width: 420px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15); overflow: hidden; border: 4px solid var(--color-blanco); }
+        .quiz-header { padding: 20px 25px; text-align: center; }
+        .quiz-header h1 { color: var(--color-blanco); font-size: 1.3rem; margin: 0; font-weight: 600; }
+        .quiz-card { background-color: var(--color-fondo-tarjeta); padding: 25px; border-radius: 20px; }
+        #modo-inicio-container .quiz-card { text-align: center;}
+        .modo-inicio-card h2 { margin-top: 0; color: var(--color-texto-oscuro); }
+        .modo-inicio-card .btn-modo { width: 100%; padding: 15px; font-size: 1.2rem; font-weight: 600; cursor: pointer; border: none; border-radius: 12px; margin-top: 15px; color: white; transition: transform 0.2s; }
+        .modo-inicio-card .btn-modo:hover { transform: scale(1.03); }
+        .btn-entrenamiento { background-color: #0d6efd; }
+        .btn-examen { background-color: #dc3545; }
+        #timer { font-size: 1.2rem; font-weight: bold; color: #dc3545; text-align: center; margin-bottom: 15px; display: none; }
+        .question-area { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; }
+        .speaker-icon { font-size: 2rem; color: var(--color-principal); cursor: pointer; transition: transform 0.2s; }
+        .speaker-icon:hover { transform: scale(1.1); }
+        .question-text { font-size: 1.3rem; font-weight: 600; margin: 0; }
+        .options-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+        .option-wrapper { display: flex; align-items: center; gap: 10px; }
+        .option { flex-grow: 1; padding: 15px; border: 2px solid #e0e0e0; border-radius: 12px; background-color: var(--color-blanco); font-size: 1.1rem; font-weight: 500; text-align: left; cursor: pointer; transition: all 0.2s; width: 100%; box-sizing: border-box;}
+        .option.correct { border-color: var(--color-correcto-borde); background-color: var(--color-correcto-fondo); font-weight: 700; border-width: 3px; }
+        .option.incorrect { border-color: var(--color-incorrecto-borde); background-color: var(--color-incorrecto-fondo); font-weight: 700; border-width: 3px; }
+        .option[disabled] { cursor: not-allowed; opacity: 0.7; }
+        .option-speaker { font-size: 1.5rem; cursor: pointer; color: #6c757d; transition: transform 0.2s; }
+        .option-speaker:hover { transform: scale(1.1); }
+        .feedback-area { padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid transparent; display: none; }
+        .feedback-area.correct { display: block; background-color: var(--color-correcto-fondo); border-color: var(--color-correcto-borde); }
+        .feedback-area.incorrect { display: block; background-color: var(--color-incorrecto-fondo); border-color: var(--color-incorrecto-borde); }
+        .feedback-area .title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; }
+        .feedback-area.correct .title { color: #155724; }
+        .feedback-area.incorrect .title { color: #721c24; }
+        .actions-container { display:flex; justify-content: center; margin-top:20px;}
+        .mic-btn { background-color: #e9ecef; color: #495057; border: 1px solid #ced4da; border-radius: 50%; font-size: 1.8rem; cursor: pointer; display: flex; justify-content: center; align-items: center; width: 65px; height: 65px; transition: all 0.2s; }
+        .mic-btn.listening { background-color: var(--color-incorrecto-fondo); color: var(--color-incorrecto-borde); animation: pulse 1.5s infinite; }
+        .mic-btn:disabled { cursor: not-allowed; background-color: #f5f5f5; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } 70% { box-shadow: 0 0 0 12px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header class="quiz-header"><h1>SIED - Facultad de Ingeniería - UNJu</h1></header>
+        <div id="modo-inicio-container">
+            <main class="quiz-card modo-inicio-card">
+                <h2>Elige un modo para comenzar</h2>
+                <button class="btn-modo btn-entrenamiento">Práctica (con ayuda)</button>
+                <button class="btn-modo btn-examen">Examen (con tiempo)</button>
+            </main>
+        </div>
+        <div id="quiz-container" style="display:none;">
+            <main class="quiz-card">
+                <div id="timer"></div>
+                <div class="question-area"><span class="speaker-icon" id="speaker-btn" title="Leer pregunta">🔊</span><h2 class="question-text" id="question-text"></h2></div>
+                <div class="options-container" id="options-container"></div>
+                <div class="feedback-area" id="feedback-area"><p class="title" id="feedback-title"></p><p class="explanation" id="feedback-explanation"></p></div>
+                <div class="actions-container"><button class="mic-btn" id="mic-btn" title="Responder por voz">🎤</button></div>
+            </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://nindbkahmhbutpizbgpg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let todasLasPreguntas = [], preguntaActualIndex = 0, modoJuego = '', timerInterval, tiempoRestante = 600, puntaje = 0;
+
+        const questionTextEl = document.getElementById('question-text'), optionsContainerEl = document.getElementById('options-container'),
+              feedbackAreaEl = document.getElementById('feedback-area'), feedbackTitleEl = document.getElementById('feedback-title'),
+              feedbackExplanationEl = document.getElementById('feedback-explanation'), speakerBtn = document.getElementById('speaker-btn'),
+              micBtn = document.getElementById('mic-btn'), timerEl = document.getElementById('timer');
+
+        document.querySelector('.btn-entrenamiento').addEventListener('click', () => iniciarQuiz('practica'));
+        document.querySelector('.btn-examen').addEventListener('click', () => iniciarQuiz('examen'));
+
+        async function iniciarQuiz(modo) {
+            modoJuego = modo;
+            document.getElementById('modo-inicio-container').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            if (modoJuego === 'examen') {
+                timerEl.style.display = 'block';
+                iniciarTimer();
+            }
+            const { data, error } = await supabaseClient.from('preguntas').select('*');
+            if (error || !data || data.length === 0) { questionTextEl.textContent = 'Error al cargar preguntas.'; return; }
+            todasLasPreguntas = data.sort(() => Math.random() - 0.5);
+            preguntaActualIndex = 0; puntaje = 0;
+            mostrarPregunta();
+        }
+
+        function iniciarTimer() { if(timerInterval) clearInterval(timerInterval); tiempoRestante = 600; timerInterval = setInterval(actualizarTimer, 1000); }
+        function actualizarTimer() {
+            tiempoRestante--;
+            const m = Math.floor(tiempoRestante / 60); let s = tiempoRestante % 60;
+            timerEl.textContent = `Tiempo: ${m}:${s < 10 ? '0' + s : s}`;
+            if (tiempoRestante <= 0) { finalizarQuiz(true); }
+        }
+
+        function mostrarPregunta() {
+            resetearEstado();
+            const pregunta = todasLasPreguntas[preguntaActualIndex];
+            questionTextEl.textContent = pregunta.texto_pregunta;
+            pregunta.opciones.forEach(opcionTexto => {
+                const wrapper = document.createElement('div'); wrapper.className = 'option-wrapper';
+                const button = document.createElement('button'); button.textContent = opcionTexto; button.className = 'option';
+                button.addEventListener('click', e => seleccionarOpcion(e.target));
+                const optionSpeaker = document.createElement('span'); optionSpeaker.className = 'speaker-icon option-speaker';
+                optionSpeaker.title = 'Leer opción'; optionSpeaker.textContent = '🔊';
+                optionSpeaker.addEventListener('click', e => { e.stopPropagation(); hablar(opcionTexto); });
+                wrapper.appendChild(button); wrapper.appendChild(optionSpeaker);
+                optionsContainerEl.appendChild(wrapper);
+            });
+        }
+
+        function seleccionarOpcion(botonSeleccionado) {
+            document.querySelectorAll('.option').forEach(b => b.disabled = true);
+            micBtn.disabled = true;
+            const pregunta = todasLasPreguntas[preguntaActualIndex];
+            const esCorrecta = botonSeleccionado.textContent === pregunta.respuesta_correcta;
+            if (esCorrecta) puntaje++;
+            
+            if (modoJuego === 'practica') {
+                botonSeleccionado.classList.add(esCorrecta ? 'correct' : 'incorrect');
+                if (!esCorrecta) {
+                    const botonCorrecto = Array.from(optionsContainerEl.querySelectorAll('.option')).find(b => b.textContent === pregunta.respuesta_correcta);
+                    if (botonCorrecto) botonCorrecto.classList.add('correct');
+                }
+                mostrarFeedback(esCorrecta, pregunta.fundamento);
+            }
+            setTimeout(siguientePregunta, modoJuego === 'practica' ? 3500 : 800);
+        }
+        
+        function mostrarFeedback(esCorrecta, explicacion) {
+            feedbackAreaEl.className = `feedback-area ${esCorrecta ? 'correct' : 'incorrect'}`;
+            feedbackTitleEl.textContent = esCorrecta ? '¡Correcto!' : 'Incorrecto';
+            const pregunta = todasLasPreguntas[preguntaActualIndex];
+            feedbackExplanationEl.textContent = esCorrecta ? explicacion : `La respuesta correcta es: "${pregunta.respuesta_correcta}". ` + explicacion;
+            feedbackAreaEl.style.display = 'block';
+        }
+
+        function siguientePregunta() {
+            preguntaActualIndex++;
+            (preguntaActualIndex < todasLasPreguntas.length) ? mostrarPregunta() : finalizarQuiz(false);
+        }
+        
+        function finalizarQuiz(porTiempo) {
+            clearInterval(timerInterval);
+            questionTextEl.textContent = '¡Cuestionario finalizado!';
+            let resultadoHTML = '';
+            if (porTiempo) {
+                resultadoHTML = '<p style="text-align:center; font-size:1.2rem;">¡Se acabó el tiempo!</p>';
+            }
+            const porcentaje = ((puntaje / todasLasPreguntas.length) * 100).toFixed(0);
+            resultadoHTML += `<p style="text-align:center; font-size:1.2rem;">Resultado: ${puntaje} de ${todasLasPreguntas.length} correctas.<br><strong>Puntaje: ${porcentaje}%</strong></p>`;
+            optionsContainerEl.innerHTML = resultadoHTML;
+            feedbackAreaEl.style.display = 'none';
+            speakerBtn.style.display = 'none';
+            micBtn.style.display = 'none';
+        }
+        
+        function resetearEstado() {
+            feedbackAreaEl.style.display = 'none';
+            micBtn.disabled = false;
+            speakerBtn.style.display = 'flex';
+            micBtn.style.display = 'flex';
+        }
+
+        function hablar(texto) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(texto);
+                utterance.lang = 'es-ES';
+                window.speechSynthesis.speak(utterance);
+            } else { alert("Tu navegador no soporta la función de voz."); }
+        }
+
+        function escucharRespuesta() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition || document.querySelector('.option:disabled')) { return; }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            micBtn.classList.add('listening'); micBtn.disabled = true;
+            recognition.start();
+            recognition.onresult = function(event) {
+                const respuestaHablada = event.results[0][0].transcript.trim().toLowerCase().replace('.', '');
+                const botonCoincidente = Array.from(optionsContainerEl.querySelectorAll('.option')).find(btn => btn.textContent.trim().toLowerCase() === respuestaHablada);
+                if (botonCoincidente) { botonCoincidente.click(); } else { alert(`Respuesta no reconocida: "${respuestaHablada}".`); }
+            };
+            recognition.onend = function() { micBtn.classList.remove('listening'); if (!document.querySelector('.option:disabled')) { micBtn.disabled = false; } };
+            recognition.onerror = function(event) { micBtn.classList.remove('listening'); micBtn.disabled = false; };
+        }
+        
+        speakerBtn.addEventListener('click', () => hablar(questionTextEl.textContent));
+        micBtn.addEventListener('click', escucharRespuesta);
+    </script>
+</body>
+</html>
