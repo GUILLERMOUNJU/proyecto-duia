@@ -1,50 +1,81 @@
 <!DOCTYPE html> 
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DUIA - Plataforma Educativa</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #f4f6fa;
-            text-align: center;
-            padding: 40px;
-        }
-        h1 {
-            color: #0a2e5c;
-        }
-        .boton {
-            display: block;
-            width: 80%;
-            max-width: 400px;
-            margin: 10px auto;
-            padding: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            background-color: #003366;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-        }
-        .boton:hover {
-            background-color: #0059b3;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DUIA - Plataforma Educativa</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6fa;
+      text-align: center;
+      padding: 40px;
+      color: #333;
+    }
+    h1 {
+      color: #0a2e5c;
+      margin-bottom: 10px;
+    }
+    .boton {
+      display: block;
+      width: 90%;
+      max-width: 400px;
+      margin: 10px auto;
+      padding: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      background-color: #003366;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .boton:hover {
+      background-color: #0059b3;
+    }
+    img {
+      height: 80px;
+      margin-bottom: 20px;
+    }
+    .grupo {
+      margin-top: 40px;
+    }
+    hr {
+      border: none;
+      border-top: 3px solid #003366;
+      margin: 30px 0;
+      width: 80%;
+    }
+    footer {
+      margin-top: 60px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
 </head>
 <body>
-    <img src="logo-unju.png" alt="Logo UNJu" width="100"><br><br>
-    <h1>DUIA - Plataforma Educativa</h1>
-    <hr>
-    <!-- Acceso directo para alumnos -->
-    <a class="boton" href="DUIA/asistente-alumno.html">🎓 Ingresar como Alumno</a>
+  <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo Facultad de Ingeniería UNJu">
+  <h1>DUIA - Plataforma Educativa</h1>
+  <p>Desarrollo de una Herramienta Educativa Accesible</p>
+  <hr>
 
-    <!-- Accesos protegidos por clave -->
-    <a class="boton" href="DUIA/clave.html?destino=creador.html">✏️ Ingresar como Docente</a>
-    <a class="boton" href="DUIA/clave.html?destino=resultados.html">📊 Ver Resultados Docente</a>
-    <a class="boton" href="DUIA/clave.html?destino=creador-con-gemini.html">🤖 Crear Preguntas con Gemini</a>
+  <div class="grupo">
+    <h2>👨‍🎓 Alumnos</h2>
+    <a class="boton" href="DUIA/asistente-alumno.html">🎓 Ingresar al Asistente (🔊🎤)</a>
+  </div>
+
+  <div class="grupo">
+    <h2>👨‍🏫 Docentes</h2>
+    <a class="boton" href="DUIA/clave.html?destino=creador.html">✏️ Crear Preguntas</a>
+    <a class="boton" href="DUIA/clave.html?destino=creador-con-gemini.html">🤖 IA: Crear con Gemini</a>
+    <a class="boton" href="DUIA/clave.html?destino=resultados.html">📊 Ver Resultados</a>
+  </div>
+
+  <footer>
+    <hr>
+    <p>© 2025 SIED - Facultad de Ingeniería - UNJu</p>
+  </footer>
 </body>
 </html>
