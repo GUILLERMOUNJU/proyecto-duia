@@ -60,6 +60,13 @@
       font-size: 0.9rem;
       color: #666;
     }
+    .microfono {
+      font-size: 2rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -67,10 +74,13 @@
     <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
     <h1>DUIA – Plataforma Educativa Accesible</h1>
   </header>
+
   <section class="intro">
     <h2>¿Qué es DUIA?</h2>
-    <p>DUIA (Desarrollo de una Herramienta Educativa Accesible) es una plataforma digital desarrollada por la Facultad de Ingeniería de la UNJu. Su propósito es facilitar la práctica y evaluación de estudiantes, con un enfoque especial en la inclusión, accesibilidad y autonomía.</p>
+    <p id="textoIntro">DUIA es una herramienta educativa accesible, pensada para acompañar a estudiantes y docentes con tecnologías como lectura por voz, reconocimiento de voz y diseño accesible.</p>
+    <button class="microfono" onclick="escuchar()">🎤</button>
   </section>
+
   <section class="tarjetas">
     <div class="card">
       <h3>Para estudiantes</h3>
@@ -85,8 +95,35 @@
       <p>Incorporamos tecnologías como lectura de voz, reconocimiento vocal, interfaz mobile-first y diseño universal.</p>
     </div>
   </section>
+
   <footer>
     Facultad de Ingeniería – Universidad Nacional de Jujuy © 2025
   </footer>
+
+  <script>
+    // 🔊 Lectura automática del texto
+    window.onload = () => {
+      const texto = document.getElementById("textoIntro").innerText;
+      const u = new SpeechSynthesisUtterance(texto);
+      u.lang = 'es-ES';
+      speechSynthesis.speak(u);
+    };
+
+    // 🎤 Reconocimiento de comandos por voz
+    function escuchar() {
+      if (!('webkitSpeechRecognition' in window)) return alert("Tu navegador no soporta reconocimiento de voz.");
+      const rec = new webkitSpeechRecognition();
+      rec.lang = 'es-ES';
+      rec.onresult = e => {
+        const comando = e.results[0][0].transcript.toLowerCase();
+        if (comando.includes("alumno")) location.href = "DUIA/asistente-alumno.html";
+        else if (comando.includes("docente")) location.href = "DUIA/clave.html";
+        else if (comando.includes("inicio") || comando.includes("landing")) location.href = "landing.html";
+        else alert("Comando no reconocido: " + comando);
+      };
+      rec.start();
+    }
+  </script>
 </body>
 </html>
+
