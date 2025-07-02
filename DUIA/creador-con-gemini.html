@@ -85,7 +85,7 @@
   </div>
 
   <script>
-    const supabase = supabase.createClient(
+    const supabase = window.supabase.createClient(
       'https://nindbkahmhbutpizbgpg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
     );
@@ -100,7 +100,7 @@
         texto = await extraerTextoDePDF(archivo);
       }
 
-      const response = await fetch('https://generador.duia.app/gemini', {
+      const response = await fetch('https://nindbkahmhbutpizbgpg.supabase.co/functions/v1/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ textoPDF: texto })
