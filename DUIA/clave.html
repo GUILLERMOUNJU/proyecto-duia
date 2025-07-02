@@ -19,6 +19,8 @@
       justify-content: center;
       height: 100vh;
       margin: 0;
+      padding: 0 20px;
+      text-align: center;
     }
     h1 {
       color: var(--azul-unju);
@@ -29,7 +31,8 @@
       font-size: 1.1rem;
       border: 2px solid #ccc;
       border-radius: 8px;
-      width: 250px;
+      width: 100%;
+      max-width: 300px;
       margin-bottom: 15px;
     }
     button {
@@ -49,6 +52,11 @@
       color: var(--rojo);
       margin-top: 10px;
     }
+    small {
+      margin-top: 10px;
+      display: block;
+      color: #666;
+    }
   </style>
 </head>
 <body>
@@ -57,21 +65,29 @@
   <br>
   <button onclick="verificarClave()">Ingresar</button>
   <div class="error" id="mensaje-error"></div>
+  <small id="info-destino"></small>
 
   <script>
+    const CLAVE_CORRECTA = "innoa329";
+
+    function getDestino() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('destino') || "creador.html";
+    }
+
     function verificarClave() {
       const claveIngresada = document.getElementById("clave").value.trim();
       const errorDiv = document.getElementById("mensaje-error");
 
-      const CLAVE_CORRECTA = "innoa329";  // <- Podés cambiarla por una variable de entorno si usás backend
-
       if (claveIngresada === CLAVE_CORRECTA) {
-        // Redireccionar a creador o resultados, o elegir según lógica
-        window.location.href = "creador.html";
+        window.location.href = getDestino();
       } else {
         errorDiv.textContent = "❌ Clave incorrecta. Intentá de nuevo.";
       }
     }
+
+    // Mostrar destino previsto en la interfaz (opcional, ayuda visual)
+    document.getElementById('info-destino').textContent = "Destino: " + getDestino();
   </script>
 </body>
 </html>
