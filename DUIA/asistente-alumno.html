@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DUIA - Asistente Alumno</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --azul-unju: #003366;
@@ -109,6 +110,7 @@
 <div class="container" style="display:none;" id="contenido-container">
   <div id="contenido"></div>
   <div id="resultadoFinal"></div>
+  <canvas id="grafico"></canvas>
 </div>
 
 <script>
@@ -117,19 +119,17 @@ const supabase = supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
 );
 
-let preguntas = [];
-let indice = 0;
-let puntaje = 0;
+let preguntas = [], indice = 0, puntaje = 0;
 let nombre = "", codigo = "", rol = "";
-let modoJuego = "practica";
+let modoJuego = "practica", inicioSesion = null;
 
 async function iniciar(modo) {
   nombre = document.getElementById('nombre').value.trim();
   codigo = document.getElementById('codigo').value.trim();
   rol = document.getElementById('rol').value;
-
   if (!nombre || !codigo) return alert('Por favor, completa todos los campos.');
 
+  inicioSesion = new Date();
   modoJuego = modo;
   document.getElementById('identificacion').style.display = 'none';
   document.getElementById('contenido-container').style.display = 'block';
@@ -199,6 +199,8 @@ function seleccionar(opcion) {
 function mostrarResultado() {
   document.getElementById('contenido').innerHTML = '';
   document.getElementById('resultadoFinal').textContent = `Has completado la práctica. Obtuviste ${puntaje} de ${preguntas.length} correctas.`;
+  registrarSesion();
+  renderizarGrafico();
 }
 
 function leer(texto) {
@@ -238,6 +240,42 @@ async function guardarRespuesta(id, texto, respuesta, correcta, esCorrecta) {
     rol,
     origen: 'manual'
   }]);
+}
+
+async function registrarSesion() {
+  const finSesion = new Date();
+  const duracion = Math.round((finSesion - inicioSesion) / 1000); // segundos
+  await supabase.from('sesiones').insert([{
+    nombre,
+    codigo,
+    rol,
+    inicio: inicioSesion.toISOString(),
+    fin: finSesion.toISOString(),
+    duracion,
+    tipo: modoJuego
+  }]);
+}
+
+function renderizarGrafico() {
+  const ctx = document.getElementById('grafico').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Correctas', 'Incorrectas'],
+      datasets: [{
+        label: 'Respuestas',
+        data: [puntaje, preguntas.length - puntaje],
+        backgroundColor: ['#28a745', '#dc3545']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Resultados del alumno' }
+      }
+    }
+  });
 }
 </script>
 </body>
