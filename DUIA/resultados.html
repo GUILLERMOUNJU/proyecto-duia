@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DUIA - Resultados Mejorados</title>
+  <title>DUIA - Resultados</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
@@ -31,7 +31,7 @@
     }
     button {
       padding: 10px 20px;
-      background-color: #0d6efd;
+      background-color: #003366;
       color: white;
       border: none;
       border-radius: 8px;
@@ -63,13 +63,17 @@
   <h1>📊 Resultados de Estudiantes</h1>
   <div class="controls">
     <select id="modoFiltro">
-      <option value="todos">Todos</option>
+      <option value="todos">Todos los modos</option>
       <option value="practica">Práctica</option>
       <option value="examen">Examen</option>
     </select>
     <select id="cursoFiltro">
       <option value="todos">Todos los cursos</option>
-      <!-- Cursos se llenarán dinámicamente -->
+    </select>
+    <select id="origenFiltro">
+      <option value="todos">Todos los orígenes</option>
+      <option value="manual">Manual</option>
+      <option value="gemini">Gemini</option>
     </select>
     <input type="text" id="busqueda" placeholder="Buscar por palabra clave..." />
     <button onclick="exportarCSV()">📤 Exportar CSV</button>
@@ -88,13 +92,14 @@
     const contenedor = document.getElementById("contenedorResultados");
     const modoFiltro = document.getElementById("modoFiltro");
     const cursoFiltro = document.getElementById("cursoFiltro");
+    const origenFiltro = document.getElementById("origenFiltro");
     const busqueda = document.getElementById("busqueda");
     let datosGlobales = [];
 
     async function cargarResultados() {
       let { data, error } = await supabase
         .from('respuestas')
-        .select('fecha, respuesta, modo, curso, pregunta:preguntas(texto)')
+        .select('fecha, respuesta, modo, curso, origen, pregunta:preguntas(texto)')
         .order('fecha', { ascending: false });
 
       if (error) {
@@ -111,11 +116,13 @@
     function renderizarResultados() {
       const modo = modoFiltro.value;
       const curso = cursoFiltro.value;
+      const origen = origenFiltro.value;
       const texto = busqueda.value.toLowerCase();
 
       const filtrados = datosGlobales.filter(r => {
         return (modo === "todos" || r.modo === modo) &&
                (curso === "todos" || r.curso === curso) &&
+               (origen === "todos" || r.origen === origen) &&
                (r.pregunta.texto.toLowerCase().includes(texto) || r.respuesta.toLowerCase().includes(texto));
       });
 
@@ -127,6 +134,7 @@
           <h3>${r.pregunta.texto}</h3>
           <p><strong>Respuesta:</strong> ${r.respuesta}</p>
           <p><strong>Modo:</strong> ${r.modo} | <strong>Curso:</strong> ${r.curso || 'N/A'}</p>
+          <p><strong>Origen:</strong> ${r.origen || 'manual'}</p>
           <p><strong>Fecha:</strong> ${new Date(r.fecha).toLocaleString()}</p>
         `;
         contenedor.appendChild(card);
@@ -139,13 +147,15 @@
     }
 
     function exportarCSV() {
-      const rows = [['Fecha','Pregunta','Respuesta','Modo','Curso']];
+      const rows = [['Fecha','Pregunta','Respuesta','Modo','Curso','Origen']];
       const modo = modoFiltro.value;
       const curso = cursoFiltro.value;
+      const origen = origenFiltro.value;
       const texto = busqueda.value.toLowerCase();
       const filtrados = datosGlobales.filter(r => {
         return (modo === "todos" || r.modo === modo) &&
                (curso === "todos" || r.curso === curso) &&
+               (origen === "todos" || r.origen === origen) &&
                (r.pregunta.texto.toLowerCase().includes(texto) || r.respuesta.toLowerCase().includes(texto));
       });
       filtrados.forEach(r => {
@@ -154,7 +164,8 @@
           r.pregunta.texto,
           r.respuesta,
           r.modo,
-          r.curso || ''
+          r.curso || '',
+          r.origen || 'manual'
         ]);
       });
       const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(",")).join("\n");
@@ -170,9 +181,10 @@
       const ctx = document.getElementById('graficoResumen').getContext('2d');
       const resumen = {};
       datosGlobales.forEach(r => {
-        const texto = r.pregunta.texto;
-        if (!resumen[texto]) resumen[texto] = { practica: 0, examen: 0 };
-        resumen[texto][r.modo]++;
+        const key = r.pregunta.texto;
+        if (!resumen[key]) resumen[key] = { practica: 0, examen: 0 };
+        if (r.modo === 'practica') resumen[key].practica++;
+        if (r.modo === 'examen') resumen[key].examen++;
       });
       const etiquetas = Object.keys(resumen);
       const practicaData = etiquetas.map(e => resumen[e].practica);
@@ -196,6 +208,7 @@
 
     modoFiltro.addEventListener('change', renderizarResultados);
     cursoFiltro.addEventListener('change', renderizarResultados);
+    origenFiltro.addEventListener('change', renderizarResultados);
     busqueda.addEventListener('input', renderizarResultados);
 
     cargarResultados();
