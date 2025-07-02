@@ -136,7 +136,7 @@
       resultadoDiv.innerHTML = '';
       preguntas.forEach(async (p) => {
         await supabase.from('preguntas').insert({
-          texto: p.texto,
+          pregunta: p.texto,
           opciones: JSON.stringify(p.opciones),
           respuesta_correcta: p.respuesta_correcta,
           fundamento: p.fundamento,
