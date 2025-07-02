@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DUIA - Resultados Docente</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Poppins, sans-serif; background: #f4f6f9; margin: 0; padding: 0; }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      padding: 10px 20px;
+      border-bottom: 4px solid #003366;
+    }
+    header img { height: 50px; }
+    header h1 { font-size: 1.2rem; color: #003366; margin: 0; }
+    .container { max-width: 1000px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+    select, input[type="text"] { padding: 8px; font-size: 1rem; border-radius: 6px; border: 1px solid #ccc; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+    th { background: #003366; color: white; }
+    .correcto { color: green; }
+    .incorrecto { color: red; }
+    .export-btn { padding: 8px 16px; background: #003366; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
+    <h1>SIED - Resultados del Alumno</h1>
+  </header>
+  <div class="container">
+    <div class="filters">
+      <select id="modoFiltro">
+        <option value="todos">Todos los modos</option>
+        <option value="practica">Práctica</option>
+        <option value="examen">Examen</option>
+      </select>
+      <input type="date" id="fechaFiltro">
+      <input type="text" id="busqueda" placeholder="Buscar palabra clave...">
+      <button class="export-btn" onclick="exportarCSV()">Exportar CSV</button>
+    </div>
+    <div id="resumenEstadisticas" style="margin-bottom: 20px;"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Modo</th>
+          <th>Pregunta</th>
+          <th>Respuesta</th>
+          <th>¿Correcta?</th>
+        </tr>
+      </thead>
+      <tbody id="tablaResultados"></tbody>
+    </table>
+  </div>
+  <script>
+    const supabase = supabase.createClient(
+      'https://nindbkahmhbutpizbgpg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+    );
+
+    let datos = [];
+
+    async function cargarDatos() {
+      const { data, error } = await supabase.from('respuestas').select('*').order('fecha', { ascending: false });
+      if (error) return alert('Error al cargar datos');
+      datos = data;
+      filtrarYMostrar();
+    }
+
+    function filtrarYMostrar() {
+      const modo = document.getElementById('modoFiltro').value;
+      const fecha = document.getElementById('fechaFiltro').value;
+      const texto = document.getElementById('busqueda').value.toLowerCase();
+
+      const filtrados = datos.filter(r => {
+        return (modo === 'todos' || r.modo === modo) &&
+               (!fecha || r.fecha.startsWith(fecha)) &&
+               (!texto || r.texto_pregunta?.toLowerCase().includes(texto) || r.respuesta?.toLowerCase().includes(texto));
+      });
+
+      const tbody = document.getElementById('tablaResultados');
+      tbody.innerHTML = '';
+      filtrados.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${new Date(r.fecha).toLocaleString()}</td>
+          <td>${r.modo}</td>
+          <td>${r.texto_pregunta || '-'}</td>
+          <td>${r.respuesta || '-'}</td>
+          <td class="${r.es_correcta ? 'correcto' : 'incorrecto'}">${r.es_correcta ? '✅' : '❌'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function mostrarEstadisticas() {
+  const resumen = document.getElementById('resumenEstadisticas');
+  const totales = datos.length;
+  const aciertos = datos.filter(d => d.es_correcta).length;
+  const errores = totales - aciertos;
+  const porcen = totales > 0 ? Math.round(aciertos / totales * 100) : 0;
+  resumen.innerHTML = `<strong>📈 Estadísticas generales:</strong><br>
+    Total respuestas: ${totales} | ✅ Correctas: ${aciertos} | ❌ Incorrectas: ${errores} | Porcentaje de acierto: ${porcen}%`;
+}
+
+function exportarCSV() {
+      const rows = [['Fecha','Modo','Pregunta','Respuesta','¿Correcta?']];
+      document.querySelectorAll('#tablaResultados tr').forEach(tr => {
+        const cols = Array.from(tr.children).map(td => td.textContent);
+        rows.push(cols);
+      });
+      const csv = rows.map(r => r.join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'resultados_duia.csv';
+      a.click();
+    }
+
+    document.getElementById('modoFiltro').onchange = filtrarYMostrar;
+    document.getElementById('fechaFiltro').onchange = filtrarYMostrar;
+    document.getElementById('busqueda').oninput = filtrarYMostrar;
+
+    cargarDatos();
+mostrarEstadisticas();
+  </script>
+</body>
+</html>
