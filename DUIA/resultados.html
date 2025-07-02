@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DUIA - Resultados</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f9;
+      padding: 30px;
+      color: #333;
+    }
+    h1 {
+      color: #003366;
+      text-align: center;
+    }
+    select {
+      font-size: 1rem;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #003366;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Resultados de Estudiantes</h1>
+
+  <label for="modoFiltro">Filtrar por modo:</label>
+  <select id="modoFiltro">
+    <option value="todos">Todos</option>
+    <option value="practica">Práctica</option>
+    <option value="examen">Examen</option>
+  </select>
+
+  <table>
+    <thead>
+      <tr>
+        <th>📅 Fecha</th>
+        <th>🧠 Pregunta</th>
+        <th>📝 Respuesta</th>
+        <th>🎯 Modo</th>
+      </tr>
+    </thead>
+    <tbody id="tablaResultados"></tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = 'https://nindbkahmhbutpizbgpg.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    const tabla = document.getElementById('tablaResultados');
+    const filtro = document.getElementById('modoFiltro');
+
+    async function cargarResultados() {
+      let { data, error } = await supabase
+        .from('respuestas')
+        .select('fecha, respuesta, modo, pregunta_id, preguntas:texto_pregunta')
+        .order('fecha', { ascending: false });
+
+      if (error) {
+        tabla.innerHTML = `<tr><td colspan="4">Error al cargar datos: ${error.message}</td></tr>`;
+        return;
+      }
+
+      // Filtrar si se seleccionó un modo específico
+      const modo = filtro.value;
+      if (modo !== 'todos') {
+        data = data.filter(r => r.modo === modo);
+      }
+
+      // Renderizar tabla
+      tabla.innerHTML = '';
+      data.forEach(r => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+          <td>${new Date(r.fecha).toLocaleString()}</td>
+          <td>${r.preguntas || '(texto no disponible)'}</td>
+          <td>${r.respuesta}</td>
+          <td>${r.modo}</td>
+        `;
+        tabla.appendChild(fila);
+      });
+    }
+
+    filtro.addEventListener('change', cargarResultados);
+    cargarResultados();
+  </script>
+</body>
+</html>
