@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Acceso Docente</title>
+  <title>DUIA - Acceso Docente</title>
   <style>
+    :root {
+      --azul-unju: #003366;
+      --gris: #f4f6f9;
+      --rojo: #d44e41;
+    }
     body {
       font-family: 'Poppins', sans-serif;
-      background-color: #f4f6f9;
+      background-color: var(--gris);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -16,7 +21,7 @@
       margin: 0;
     }
     h1 {
-      color: #003366;
+      color: var(--azul-unju);
       margin-bottom: 20px;
     }
     input[type="password"] {
@@ -31,38 +36,40 @@
       padding: 12px 20px;
       font-size: 1rem;
       font-weight: bold;
-      background-color: #003366;
+      background-color: var(--azul-unju);
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
     }
+    button:hover {
+      background-color: #0059b3;
+    }
     .error {
-      color: red;
+      color: var(--rojo);
       margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <h1>🔐 Acceso Docente</h1>
-  <input type="password" id="clave" placeholder="Ingrese la clave de acceso" />
+  <input type="password" id="clave" placeholder="Ingrese la clave de acceso" onkeydown="if(event.key==='Enter') verificarClave()" />
   <br>
   <button onclick="verificarClave()">Ingresar</button>
   <div class="error" id="mensaje-error"></div>
 
   <script>
     function verificarClave() {
-      const clave = document.getElementById("clave").value;
+      const claveIngresada = document.getElementById("clave").value.trim();
       const errorDiv = document.getElementById("mensaje-error");
 
-      // Cambia esto por la clave que vos quieras
-      const CLAVE_CORRECTA = "innoa329";
+      const CLAVE_CORRECTA = "innoa329";  // <- Podés cambiarla por una variable de entorno si usás backend
 
-      if (clave === CLAVE_CORRECTA) {
-        // Redirige al módulo que desees
-        window.location.href = "creador.html"; // o "resultados.html"
+      if (claveIngresada === CLAVE_CORRECTA) {
+        // Redireccionar a creador o resultados, o elegir según lógica
+        window.location.href = "creador.html";
       } else {
-        errorDiv.textContent = "❌ Clave incorrecta. Intenta de nuevo.";
+        errorDiv.textContent = "❌ Clave incorrecta. Intentá de nuevo.";
       }
     }
   </script>
