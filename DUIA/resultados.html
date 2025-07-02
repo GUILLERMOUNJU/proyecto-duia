@@ -2,91 +2,83 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DUIA - Resultados</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DUIA - Resultados Mejorados</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
       background-color: #f4f6f9;
-      margin: 0;
       padding: 20px;
     }
     h1 {
       text-align: center;
       color: #003366;
-      margin-bottom: 20px;
     }
-    .filtros {
-      text-align: center;
-      margin-bottom: 30px;
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
     }
-    select {
+    select, input[type="text"] {
       padding: 10px;
       font-size: 1rem;
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-    .resultado-card {
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-      padding: 20px;
-      margin-bottom: 20px;
-      transition: transform 0.2s;
-    }
-    .resultado-card:hover {
-      transform: scale(1.01);
-    }
-    .card-top {
-      display: flex;
-      justify-content: space-between;
-      font-weight: bold;
-      color: #003366;
-      margin-bottom: 10px;
-    }
-    .pregunta {
-      font-size: 1.1rem;
-      margin-bottom: 8px;
-      color: #111;
-    }
-    .respuesta {
-      font-size: 1rem;
-      background-color: #f1f1f1;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 5px;
-    }
-    .modo {
-      font-size: 0.9rem;
-      color: white;
-      background-color: #6c757d;
-      padding: 5px 10px;
-      border-radius: 20px;
-      display: inline-block;
-    }
-    .modo.examen {
-      background-color: #dc3545;
-    }
-    .modo.practica {
+    button {
+      padding: 10px 20px;
       background-color: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .resultados {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .card h3 {
+      margin: 0 0 5px 0;
+      color: #003366;
+    }
+    canvas {
+      max-width: 100%;
+      margin: 20px auto;
     }
   </style>
 </head>
 <body>
   <h1>📊 Resultados de Estudiantes</h1>
-
-  <div class="filtros">
-    <label for="modoFiltro">Filtrar por modo:</label>
+  <div class="controls">
     <select id="modoFiltro">
       <option value="todos">Todos</option>
       <option value="practica">Práctica</option>
       <option value="examen">Examen</option>
     </select>
+    <select id="cursoFiltro">
+      <option value="todos">Todos los cursos</option>
+      <!-- Cursos se llenarán dinámicamente -->
+    </select>
+    <input type="text" id="busqueda" placeholder="Buscar por palabra clave..." />
+    <button onclick="exportarCSV()">📤 Exportar CSV</button>
   </div>
 
-  <div id="contenedorResultados"></div>
+  <canvas id="graficoResumen"></canvas>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <div class="resultados" id="contenedorResultados"></div>
+
   <script>
     const supabase = supabase.createClient(
       'https://nindbkahmhbutpizbgpg.supabase.co',
@@ -94,46 +86,119 @@
     );
 
     const contenedor = document.getElementById("contenedorResultados");
-    const filtro = document.getElementById("modoFiltro");
+    const modoFiltro = document.getElementById("modoFiltro");
+    const cursoFiltro = document.getElementById("cursoFiltro");
+    const busqueda = document.getElementById("busqueda");
+    let datosGlobales = [];
 
     async function cargarResultados() {
       let { data, error } = await supabase
         .from('respuestas')
-        .select('fecha, respuesta, modo, pregunta:preguntas(texto)')
+        .select('fecha, respuesta, modo, curso, pregunta:preguntas(texto)')
         .order('fecha', { ascending: false });
 
       if (error) {
-        contenedor.innerHTML = `<p style="color:red;">Error al cargar: ${error.message}</p>`;
+        contenedor.innerHTML = `<p>Error al cargar: ${error.message}</p>`;
         return;
       }
 
-      const modo = filtro.value;
-      if (modo !== "todos") {
-        data = data.filter(r => r.modo === modo);
-      }
+      datosGlobales = data;
+      renderizarResultados();
+      actualizarGrafico();
+      llenarCursos();
+    }
 
-      contenedor.innerHTML = "";
-      data.forEach(r => {
-        const card = document.createElement("div");
-        card.className = "resultado-card";
+    function renderizarResultados() {
+      const modo = modoFiltro.value;
+      const curso = cursoFiltro.value;
+      const texto = busqueda.value.toLowerCase();
 
-        const fecha = new Date(r.fecha).toLocaleString();
+      const filtrados = datosGlobales.filter(r => {
+        return (modo === "todos" || r.modo === modo) &&
+               (curso === "todos" || r.curso === curso) &&
+               (r.pregunta.texto.toLowerCase().includes(texto) || r.respuesta.toLowerCase().includes(texto));
+      });
 
+      contenedor.innerHTML = '';
+      filtrados.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'card';
         card.innerHTML = `
-          <div class="card-top">
-            <span>${fecha}</span>
-            <span class="modo ${r.modo}">${r.modo}</span>
-          </div>
-          <div class="pregunta">🧠 ${r.pregunta?.texto || 'Pregunta no encontrada'}</div>
-          <div class="respuesta">📝 ${r.respuesta}</div>
+          <h3>${r.pregunta.texto}</h3>
+          <p><strong>Respuesta:</strong> ${r.respuesta}</p>
+          <p><strong>Modo:</strong> ${r.modo} | <strong>Curso:</strong> ${r.curso || 'N/A'}</p>
+          <p><strong>Fecha:</strong> ${new Date(r.fecha).toLocaleString()}</p>
         `;
         contenedor.appendChild(card);
       });
     }
 
-    filtro.addEventListener("change", cargarResultados);
+    function llenarCursos() {
+      const cursos = [...new Set(datosGlobales.map(d => d.curso).filter(c => c))];
+      cursoFiltro.innerHTML = '<option value="todos">Todos los cursos</option>' + cursos.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function exportarCSV() {
+      const rows = [['Fecha','Pregunta','Respuesta','Modo','Curso']];
+      const modo = modoFiltro.value;
+      const curso = cursoFiltro.value;
+      const texto = busqueda.value.toLowerCase();
+      const filtrados = datosGlobales.filter(r => {
+        return (modo === "todos" || r.modo === modo) &&
+               (curso === "todos" || r.curso === curso) &&
+               (r.pregunta.texto.toLowerCase().includes(texto) || r.respuesta.toLowerCase().includes(texto));
+      });
+      filtrados.forEach(r => {
+        rows.push([
+          new Date(r.fecha).toLocaleString(),
+          r.pregunta.texto,
+          r.respuesta,
+          r.modo,
+          r.curso || ''
+        ]);
+      });
+      const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(e => e.join(",")).join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", csvContent);
+      link.setAttribute("download", "resultados_duia.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function actualizarGrafico() {
+      const ctx = document.getElementById('graficoResumen').getContext('2d');
+      const resumen = {};
+      datosGlobales.forEach(r => {
+        const texto = r.pregunta.texto;
+        if (!resumen[texto]) resumen[texto] = { practica: 0, examen: 0 };
+        resumen[texto][r.modo]++;
+      });
+      const etiquetas = Object.keys(resumen);
+      const practicaData = etiquetas.map(e => resumen[e].practica);
+      const examenData = etiquetas.map(e => resumen[e].examen);
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: etiquetas,
+          datasets: [
+            { label: 'Práctica', data: practicaData, backgroundColor: '#0d6efd' },
+            { label: 'Examen', data: examenData, backgroundColor: '#dc3545' }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+        }
+      });
+    }
+
+    modoFiltro.addEventListener('change', renderizarResultados);
+    cursoFiltro.addEventListener('change', renderizarResultados);
+    busqueda.addEventListener('input', renderizarResultados);
+
     cargarResultados();
   </script>
 </body>
 </html>
-
