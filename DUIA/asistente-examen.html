@@ -133,26 +133,9 @@
       background-color: var(--azul-hover);
     }
 
-    table {
-      margin-top: 20px;
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.95rem;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 10px;
+    .login-container {
       text-align: center;
-    }
-
-    th {
-      background: #e1eaff;
-      font-weight: bold;
-    }
-
-    canvas {
-      margin-top: 30px;
+      margin-top: 50px;
     }
 
     @media screen and (max-width: 600px) {
@@ -168,7 +151,17 @@
   <img src="logo-fi-unju-institucional-285x159.jpg" alt="Logo Facultad de Ingeniería UNJu">
   <h1>DUIA - Examen</h1>
 </header>
-<div class="container">
+<div class="container" id="login">
+  <h2>🔐 Ingresá tus datos para comenzar</h2>
+  <label for="nombre">Nombre:</label>
+  <input type="text" id="nombre">
+  <label for="codigo">Código:</label>
+  <input type="text" id="codigo">
+  <label for="curso">Curso:</label>
+  <input type="text" id="curso">
+  <button onclick="iniciarSesion()">Ingresar</button>
+</div>
+<div class="container" id="examen" style="display:none">
   <h2>📝 Resuelve tu examen respondiendo con voz o haciendo clic</h2>
   <p>Este módulo registra tus respuestas y el tiempo de sesión automáticamente.</p>
   <button class="microfono" onclick="escuchar()">🎤 Responder por voz</button>
@@ -182,14 +175,22 @@ const supabase = supabase.createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
 );
 
-const alumno = {
-  nombre: 'Alumno Prueba',
-  codigo: '0001',
-  curso: 'Curso A',
-  inicio: new Date()
-};
-
+let alumno = null;
 let preguntaActual = null;
+
+function iniciarSesion() {
+  const nombre = document.getElementById('nombre').value.trim();
+  const codigo = document.getElementById('codigo').value.trim();
+  const curso = document.getElementById('curso').value.trim();
+  if (!nombre || !codigo || !curso) {
+    alert("Por favor completá todos los campos.");
+    return;
+  }
+  alumno = { nombre, codigo, curso, inicio: new Date() };
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('examen').style.display = 'block';
+  cargarPregunta();
+}
 
 async function cargarPregunta() {
   const { data, error } = await supabase
@@ -255,10 +256,15 @@ function finalizarExamen() {
   const fin = new Date();
   const duracion = Math.floor((fin - alumno.inicio) / 1000);
   alert(`Gracias por completar el examen. Tiempo total: ${duracion} segundos.`);
-  // Aquí podrías redirigir o guardar en otra tabla "sesiones"
+  supabase.from('sesiones').insert([{
+    nombre: alumno.nombre,
+    codigo: alumno.codigo,
+    curso: alumno.curso,
+    inicio: alumno.inicio.toISOString(),
+    fin: fin.toISOString(),
+    duracion
+  }]);
 }
-
-cargarPregunta();
 </script>
 </body>
 </html>
