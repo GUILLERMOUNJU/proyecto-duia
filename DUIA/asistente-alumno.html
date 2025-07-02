@@ -76,16 +76,21 @@
       text-align: center;
       margin-top: 20px;
     }
-    #modo-selector {
+    #identificacion {
       text-align: center;
-      margin-top: 30px;
     }
-    #modo-selector button {
-      margin: 10px;
-      padding: 10px 20px;
+    input, select {
+      display: block;
+      margin: 10px auto;
+      padding: 10px;
+      width: 80%;
+      max-width: 400px;
       font-size: 1rem;
+    }
+    #identificacion button {
       background-color: var(--azul-unju);
       color: white;
+      padding: 10px 20px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -98,10 +103,15 @@
   <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
   <h1>SIED - Facultad de Ingeniería - UNJu</h1>
 </header>
-<div class="container" id="modo-selector">
-  <h2>Elige un modo para comenzar</h2>
-  <button onclick="iniciar('practica')">🧪 Práctica (con ayuda)</button>
-  <button onclick="iniciar('examen')">📝 Examen (con tiempo)</button>
+<div class="container" id="identificacion">
+  <h2>👤 Ingreso</h2>
+  <input type="text" id="nombre" placeholder="Nombre completo" required />
+  <input type="text" id="codigo" placeholder="Código institucional (DNI, ID)" required />
+  <select id="rol">
+    <option value="alumno">Alumno</option>
+    <option value="docente">Docente</option>
+  </select>
+  <button onclick="iniciar('practica')">Comenzar práctica</button>
 </div>
 <div class="container" style="display:none;" id="contenido-container">
   <div class="timer" id="temporizador"></div>
@@ -135,10 +145,22 @@ let modoJuego = "practica";
 let tiempoPorPregunta = 30;
 let tiempoRestante;
 let temporizadorID;
+let nombre = "";
+let codigo = "";
+let rol = "";
 
 function iniciar(modo) {
+  const nombreInput = document.getElementById('nombre').value.trim();
+  const codigoInput = document.getElementById('codigo').value.trim();
+  const rolInput = document.getElementById('rol').value;
+
+  if (!nombreInput || !codigoInput) return alert('Por favor, completa todos los campos.');
+  nombre = nombreInput;
+  codigo = codigoInput;
+  rol = rolInput;
+
   modoJuego = modo;
-  document.getElementById('modo-selector').style.display = 'none';
+  document.getElementById('identificacion').style.display = 'none';
   document.getElementById('contenido-container').style.display = 'block';
   indice = 0;
   puntaje = 0;
@@ -169,43 +191,33 @@ function iniciarPregunta() {
   mic.textContent = '🎤';
   mic.onclick = escuchar;
   contenedor.appendChild(mic);
-
-  if (modoJuego === 'examen') iniciarTemporizador();
-  else document.getElementById('temporizador').textContent = '';
 }
 
 async function seleccionar(opcion) {
-  detenerTemporizador();
   const contenedor = document.getElementById('contenido');
   const p = preguntas[indice];
   const correcto = opcion === p.respuesta_correcta;
   if (correcto) puntaje++;
 
   await guardarRespuesta(p.texto, opcion, p.respuesta_correcta, correcto);
-  if (modoJuego === 'practica') {
-    const f = document.createElement('div');
-    f.className = 'feedback ' + (correcto ? 'correcto' : 'incorrecto');
-    f.textContent = correcto ? '✅ Correcto' : `❌ Incorrecto. La respuesta correcta es: ${p.respuesta_correcta}`;
-    contenedor.appendChild(f);
+  const f = document.createElement('div');
+  f.className = 'feedback ' + (correcto ? 'correcto' : 'incorrecto');
+  f.textContent = correcto ? '✅ Correcto' : `❌ Incorrecto. La respuesta correcta es: ${p.respuesta_correcta}`;
+  contenedor.appendChild(f);
 
-    const expl = document.createElement('div');
-    expl.textContent = '🧠 ' + p.fundamento;
-    contenedor.appendChild(expl);
+  const expl = document.createElement('div');
+  expl.textContent = '🧠 ' + p.fundamento;
+  contenedor.appendChild(expl);
 
-    setTimeout(() => {
-      indice++;
-      iniciarPregunta();
-    }, 3000);
-  } else {
+  setTimeout(() => {
     indice++;
     iniciarPregunta();
-  }
+  }, 3000);
 }
 
 function mostrarResultado() {
   document.getElementById('contenido').innerHTML = '';
-  document.getElementById('temporizador').innerHTML = '';
-  document.getElementById('resultadoFinal').textContent = `Has completado el ${modoJuego}. Obtuviste ${puntaje} de ${preguntas.length} correctas.`;
+  document.getElementById('resultadoFinal').textContent = `Has completado la práctica. Obtuviste ${puntaje} de ${preguntas.length} correctas.`;
 }
 
 function leer(texto) {
@@ -229,26 +241,8 @@ function escuchar() {
   rec.start();
 }
 
-function iniciarTemporizador() {
-  tiempoRestante = tiempoPorPregunta;
-  actualizarTemporizador();
-  temporizadorID = setInterval(() => {
-    tiempoRestante--;
-    actualizarTemporizador();
-    if (tiempoRestante <= 0) {
-      detenerTemporizador();
-      indice++;
-      iniciarPregunta();
-    }
-  }, 1000);
-}
-
-function actualizarTemporizador() {
-  document.getElementById('temporizador').textContent = `Tiempo restante: ${tiempoRestante}s`;
-}
-
 async function guardarRespuesta(pregunta, respuesta, correcta, esCorrecta) {
-  const { error } = await supabase.from('respuestas').insert([
+  await supabase.from('respuestas').insert([
     {
       pregunta_id: null,
       respuesta: respuesta,
@@ -258,23 +252,13 @@ async function guardarRespuesta(pregunta, respuesta, correcta, esCorrecta) {
       es_correcta: esCorrecta,
       texto_pregunta: pregunta,
       curso: 'Curso 1',
-      materia: 'Matemática'
+      materia: 'Matemática',
+      nombre: nombre,
+      codigo: codigo,
+      rol: rol
     }
   ]);
-  if (error) console.error('Error al guardar respuesta:', error);
 }
-
-function detenerTemporizador() {
-  clearInterval(temporizadorID);
-}
-
-window.onblur = () => {
-  if (modoJuego === 'examen') {
-    detenerTemporizador();
-    indice++;
-    iniciarPregunta();
-  }
-};
 </script>
 </body>
 </html>
