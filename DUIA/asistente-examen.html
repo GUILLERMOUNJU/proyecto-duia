@@ -54,12 +54,6 @@
       color: var(--azul-unju);
     }
 
-    .timer {
-      font-weight: bold;
-      color: var(--rojo);
-      text-align: right;
-    }
-
     .pregunta {
       font-size: 1.2rem;
       font-weight: 600;
@@ -159,6 +153,11 @@
   <input type="text" id="codigo">
   <label for="curso">Curso:</label>
   <input type="text" id="curso">
+  <label for="modo">Modo:</label>
+  <select id="modo">
+    <option value="practica">Modo práctica</option>
+    <option value="examen">Modo examen</option>
+  </select>
   <button onclick="iniciarSesion()">Ingresar</button>
 </div>
 <div class="container" id="examen" style="display:none">
@@ -167,7 +166,7 @@
   <button class="microfono" onclick="escuchar()">🎤 Responder por voz</button>
   <div class="pregunta" id="pregunta"></div>
   <div id="opciones"></div>
-  <button class="finalizar" onclick="finalizarExamen()">✅ Finalizar examen</button>
+  <button class="finalizar" onclick="finalizarExamen()">✅ Finalizar</button>
 </div>
 <script>
 const supabase = supabase.createClient(
@@ -177,11 +176,13 @@ const supabase = supabase.createClient(
 
 let alumno = null;
 let preguntaActual = null;
+let modo = 'examen';
 
 function iniciarSesion() {
   const nombre = document.getElementById('nombre').value.trim();
   const codigo = document.getElementById('codigo').value.trim();
   const curso = document.getElementById('curso').value.trim();
+  modo = document.getElementById('modo').value;
   if (!nombre || !codigo || !curso) {
     alert("Por favor completá todos los campos.");
     return;
@@ -196,7 +197,7 @@ async function cargarPregunta() {
   const { data, error } = await supabase
     .from('preguntas')
     .select('*')
-    .order('id', { ascending: false })
+    .order('random()')
     .limit(1);
 
   if (data && data.length > 0) {
@@ -242,7 +243,7 @@ function seleccionar(opcion) {
     respuesta: opcion,
     respuesta_correcta: preguntaActual.correcta,
     es_correcta: esCorrecta,
-    modo: 'examen',
+    modo: modo,
     fecha: new Date().toISOString(),
     curso: alumno.curso,
     nombre: alumno.nombre,
@@ -250,6 +251,8 @@ function seleccionar(opcion) {
     rol: 'alumno',
     origen: 'manual'
   }]);
+
+  cargarPregunta();
 }
 
 function finalizarExamen() {
@@ -262,7 +265,8 @@ function finalizarExamen() {
     curso: alumno.curso,
     inicio: alumno.inicio.toISOString(),
     fin: fin.toISOString(),
-    duracion
+    duracion,
+    modo
   }]);
 }
 </script>
