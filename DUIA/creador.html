@@ -47,42 +47,31 @@
       margin-bottom: 20px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
-    .card h3 {
-      margin-top: 0;
-      color: var(--azul-unju);
-    }
-    .opciones button {
-      display: block;
+    .card input, .card textarea, .card select {
       width: 100%;
-      margin: 8px 0;
-      padding: 12px;
+      margin-top: 8px;
+      margin-bottom: 10px;
+      padding: 8px;
+      font-size: 1rem;
       border-radius: 6px;
-      border: 2px solid #ccc;
-      background-color: #f9f9f9;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: left;
+      border: 1px solid #ccc;
     }
-    .opciones button.correcta {
-      border-color: green;
-      background-color: #e0ffe0;
-    }
-    .opciones button.incorrecta {
-      border-color: red;
-      background-color: #ffe0e0;
-    }
-    .fundamento {
-      margin-top: 10px;
-      background: #eef2f5;
-      padding: 10px;
-      border-left: 3px solid var(--rojo-unju);
-    }
-    .voz, .microfono {
-      font-size: 1.2rem;
-      background-color: transparent;
+    .card button {
+      margin-top: 8px;
+      padding: 6px 12px;
       border: none;
+      border-radius: 4px;
+      background-color: var(--azul-unju);
+      color: white;
       cursor: pointer;
-      margin-left: 8px;
+    }
+    .voz {
+      background: none;
+      color: var(--azul-unju);
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-left: 6px;
     }
   </style>
 </head>
@@ -97,19 +86,12 @@
   </div>
 
   <script>
-    // Simulación de preguntas generadas (reemplazar por el array real)
     const preguntasGeneradas = [
       {
         texto: "¿Qué es la célula?",
         opciones: ["Unidad de vida", "Molécula", "Tejido", "Orgánulo"],
         respuesta_correcta: "Unidad de vida",
         fundamento: "La célula es la unidad funcional y estructural de todos los seres vivos."
-      },
-      {
-        texto: "¿Cuál es el planeta más cercano al Sol?",
-        opciones: ["Venus", "Tierra", "Marte", "Mercurio"],
-        respuesta_correcta: "Mercurio",
-        fundamento: "Mercurio es el planeta más próximo al Sol en el sistema solar."
       }
     ];
 
@@ -120,46 +102,60 @@
       const card = document.createElement("div");
       card.className = "card";
 
-      const h3 = document.createElement("h3");
-      h3.innerHTML = `💬 ${pregunta.texto} <button class="voz" onclick="hablar('${pregunta.texto}')">🔊</button>`;
-      card.appendChild(h3);
+      // Pregunta editable
+      const inputPregunta = document.createElement("input");
+      inputPregunta.value = pregunta.texto;
+      card.appendChild(inputPregunta);
 
+      // Botón voz
+      const vozP = document.createElement("button");
+      vozP.className = "voz";
+      vozP.textContent = "🔊";
+      vozP.onclick = () => hablar(inputPregunta.value);
+      card.appendChild(vozP);
+
+      // Opciones editables
       const opcionesDiv = document.createElement("div");
-      opcionesDiv.className = "opciones";
-
-      pregunta.opciones.forEach(opcion => {
-        const btn = document.createElement("button");
-        btn.textContent = opcion;
-        btn.onclick = () => verificar(btn, opcion === pregunta.respuesta_correcta, card, pregunta);
-
-        const vozBtn = document.createElement("button");
-        vozBtn.className = "voz";
-        vozBtn.innerHTML = "🔊";
-        vozBtn.onclick = e => { e.stopPropagation(); hablar(opcion); };
-
-        btn.appendChild(vozBtn);
-        opcionesDiv.appendChild(btn);
+      pregunta.opciones.forEach((opcion, i) => {
+        const inputOpcion = document.createElement("input");
+        inputOpcion.value = opcion;
+        opcionesDiv.appendChild(inputOpcion);
+        const vozO = document.createElement("button");
+        vozO.className = "voz";
+        vozO.textContent = "🔊";
+        vozO.onclick = () => hablar(inputOpcion.value);
+        opcionesDiv.appendChild(vozO);
       });
 
+      // Agregar nueva opción
+      const btnAgregar = document.createElement("button");
+      btnAgregar.textContent = "+ Agregar opción";
+      btnAgregar.onclick = () => {
+        const nuevaOpcion = document.createElement("input");
+        opcionesDiv.appendChild(nuevaOpcion);
+      };
       card.appendChild(opcionesDiv);
+      card.appendChild(btnAgregar);
+
+      // Seleccionar respuesta correcta
+      const selector = document.createElement("select");
+      pregunta.opciones.forEach(op => {
+        const opt = document.createElement("option");
+        opt.value = op;
+        opt.textContent = op;
+        if (op === pregunta.respuesta_correcta) opt.selected = true;
+        selector.appendChild(opt);
+      });
+      card.appendChild(selector);
+
+      // Fundamento editable
+      const textoFundamento = document.createElement("textarea");
+      textoFundamento.rows = 3;
+      textoFundamento.value = pregunta.fundamento;
+      card.appendChild(textoFundamento);
+
       contenedor.appendChild(card);
     });
-
-    function verificar(boton, esCorrecta, card, pregunta) {
-      const botones = card.querySelectorAll(".opciones button");
-      botones.forEach(b => b.disabled = true);
-      if (esCorrecta) {
-        boton.classList.add("correcta");
-      } else {
-        boton.classList.add("incorrecta");
-        const correcta = Array.from(botones).find(b => b.textContent.includes(pregunta.respuesta_correcta));
-        if (correcta) correcta.classList.add("correcta");
-      }
-      const f = document.createElement("div");
-      f.className = "fundamento";
-      f.textContent = `📝 Fundamento: ${pregunta.fundamento}`;
-      card.appendChild(f);
-    }
 
     function hablar(texto) {
       if ('speechSynthesis' in window) {
@@ -173,4 +169,3 @@
   </script>
 </body>
 </html>
-
