@@ -1,11 +1,62 @@
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Redirigiendo...</title>
-    <meta http-equiv="refresh" content="0; url=inicio.html" />
-  </head>
-  <body>
-    <p>Redirigiendo a la página de inicio...</p>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <title>DUIA - Inicio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background-color: #ffffff;
+      padding: 20px;
+      border-bottom: 4px solid #003366;
+    }
+    header img {
+      height: 60px;
+    }
+    header h1 {
+      color: #003366;
+      margin: 10px 0 0;
+      font-size: 1.5rem;
+    }
+    .container {
+      margin: 40px auto;
+      max-width: 600px;
+      padding: 20px;
+    }
+    .boton {
+      display: block;
+      width: 100%;
+      margin: 15px 0;
+      padding: 15px;
+      font-size: 1.2rem;
+      background-color: #003366;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .boton:hover {
+      background-color: #002244;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
+    <h1>DUIA - Plataforma Educativa</h1>
+  </header>
+  <div class="container">
+    <button class="boton" onclick="location.href='DUIA/asistente-alumno.html'">🎓 Ingresar como Alumno</button>
+    <button class="boton" onclick="location.href='DUIA/creador.html'">✏️ Ingresar como Docente</button>
+    <button class="boton" onclick="location.href='DUIA/resultados-docente.html'">📊 Ver Resultados Docente</button>
+  </div>
+</body>
 </html>
