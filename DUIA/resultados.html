@@ -6,6 +6,7 @@
   <title>DUIA - Resultados</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -77,6 +78,7 @@
     </select>
     <input type="text" id="busqueda" placeholder="Buscar por palabra clave..." />
     <button onclick="exportarCSV()">📤 Exportar CSV</button>
+    <button onclick="exportarXLSX()">📥 Exportar XLSX</button>
   </div>
 
   <canvas id="graficoResumen"></canvas>
@@ -175,6 +177,33 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+
+    function exportarXLSX() {
+      const modo = modoFiltro.value;
+      const curso = cursoFiltro.value;
+      const origen = origenFiltro.value;
+      const texto = busqueda.value.toLowerCase();
+      const filtrados = datosGlobales.filter(r => {
+        return (modo === "todos" || r.modo === modo) &&
+               (curso === "todos" || r.curso === curso) &&
+               (origen === "todos" || r.origen === origen) &&
+               (r.pregunta.texto.toLowerCase().includes(texto) || r.respuesta.toLowerCase().includes(texto));
+      });
+
+      const datos = filtrados.map(r => ({
+        Fecha: new Date(r.fecha).toLocaleString(),
+        Pregunta: r.pregunta.texto,
+        Respuesta: r.respuesta,
+        Modo: r.modo,
+        Curso: r.curso || '',
+        Origen: r.origen || 'manual'
+      }));
+
+      const hoja = XLSX.utils.json_to_sheet(datos);
+      const libro = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(libro, hoja, "Resultados");
+      XLSX.writeFile(libro, "resultados_duia.xlsx");
     }
 
     function actualizarGrafico() {
