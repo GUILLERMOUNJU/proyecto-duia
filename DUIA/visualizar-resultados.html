@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DUIA - Resultados</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --azul-unju: #003366;
+      --gris: #f4f6f9;
+      --blanco: #ffffff;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--gris);
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: var(--blanco);
+      padding: 10px 20px;
+      border-bottom: 4px solid var(--azul-unju);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header img { height: 50px; }
+    header h1 { font-size: 1.2rem; color: var(--azul-unju); margin: 0; }
+    .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    select {
+      padding: 10px;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      width: 300px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    canvas {
+      margin-top: 30px;
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
+  <h1>SIED - Facultad de Ingeniería - UNJu</h1>
+</header>
+
+<div class="container">
+  <h2>📈 Estadísticas de Exámenes</h2>
+  <label for="filtroMateria">Filtrar por materia:</label>
+  <select id="filtroMateria" onchange="filtrarMateria()">
+    <option value="">Todas</option>
+  </select>
+
+  <table id="tablaResultados">
+    <thead>
+      <tr>
+        <th>📚 Materia</th>
+        <th>👤 Nombre</th>
+        <th>📝 Pregunta</th>
+        <th>✏️ Respuesta</th>
+        <th>✅ Correcta</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <canvas id="graficoResultados" height="100"></canvas>
+</div>
+
+<script>
+const supabase = supabase.createClient(
+  'https://nindbkahmhbutpizbgpg.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+);
+
+let todasRespuestas = [];
+
+async function cargarResultados() {
+  const { data, error } = await supabase.from("respuestas").select("*").order("fecha", { ascending: false });
+  if (error) return alert("Error al cargar respuestas");
+
+  todasRespuestas = data;
+  llenarTabla(data);
+  llenarFiltro(data);
+  generarGrafico(data);
+}
+
+function llenarTabla(respuestas) {
+  const tbody = document.querySelector("#tablaResultados tbody");
+  tbody.innerHTML = "";
+  respuestas.forEach(r => {
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td>${r.materia}</td>
+      <td>${r.nombre || "Sin nombre"}</td>
+      <td>${r.texto_pregunta || "-"}</td>
+      <td>${r.respuesta}</td>
+      <td>${r.respuesta === r.respuesta_correcta ? "✔️" : "❌"}</td>
+    `;
+    tbody.appendChild(fila);
+  });
+}
+
+function llenarFiltro(respuestas) {
+  const select = document.getElementById("filtroMateria");
+  const materias = [...new Set(respuestas.map(r => r.materia).filter(Boolean))];
+  materias.forEach(m => {
+    const option = document.createElement("option");
+    option.value = m;
+    option.textContent = m;
+    select.appendChild(option);
+  });
+}
+
+function filtrarMateria() {
+  const filtro = document.getElementById("filtroMateria").value;
+  const filtradas = filtro ? todasRespuestas.filter(r => r.materia === filtro) : todasRespuestas;
+  llenarTabla(filtradas);
+  generarGrafico(filtradas);
+}
+
+let grafico;
+
+function generarGrafico(respuestas) {
+  const stats = {};
+  respuestas.forEach(r => {
+    const materia = r.materia || "Sin materia";
+    const esCorrecta = r.respuesta === r.respuesta_correcta;
+    if (!stats[materia]) stats[materia] = { correctas: 0, incorrectas: 0 };
+    if (esCorrecta) stats[materia].correctas++;
+    else stats[materia].incorrectas++;
+  });
+
+  const materias = Object.keys(stats);
+  const correctas = materias.map(m => stats[m].correctas);
+  const incorrectas = materias.map(m => stats[m].incorrectas);
+
+  if (grafico) grafico.destroy();
+
+  const ctx = document.getElementById("graficoResultados").getContext("2d");
+  grafico = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: materias,
+      datasets: [
+        {
+          label: "Correctas",
+          data: correctas,
+          backgroundColor: "rgba(0, 128, 0, 0.6)"
+        },
+        {
+          label: "Incorrectas",
+          data: incorrectas,
+          backgroundColor: "rgba(220, 53, 69, 0.6)"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "top" },
+        title: { display: true, text: "Respuestas por materia" }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+window.onload = cargarResultados;
+</script>
+</body>
+</html>
