@@ -93,15 +93,19 @@
       cursor: pointer;
     }
 
-    label {
+    .microfono {
       display: block;
-      margin: 10px auto 5px;
-      width: 80%;
-      text-align: left;
-      max-width: 400px;
+      margin: 10px auto;
+      background-color: var(--azul-unju);
+      color: white;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
     }
 
-    input, select, button {
+    label, input, select, button {
       display: block;
       margin: 5px auto 15px;
       padding: 12px;
@@ -162,6 +166,75 @@
 <div class="container">
   <h2>📝 Resuelve tu examen respondiendo con voz o haciendo clic</h2>
   <p>Este módulo registra tus respuestas y el tiempo de sesión automáticamente.</p>
+  <button class="microfono" onclick="escuchar()">🎤 Responder por voz</button>
+  <div class="pregunta" id="pregunta">¿Cuál es la capital de Argentina?
+    <button class="voz" onclick="leer('¿Cuál es la capital de Argentina?')">🔊</button>
+  </div>
+  <div class="opcion" onclick="seleccionar('Buenos Aires')">
+    Buenos Aires
+    <button class="voz" onclick="event.stopPropagation(); leer('Buenos Aires')">🔊</button>
+  </div>
+  <div class="opcion" onclick="seleccionar('Córdoba')">
+    Córdoba
+    <button class="voz" onclick="event.stopPropagation(); leer('Córdoba')">🔊</button>
+  </div>
 </div>
+<script>
+const supabase = supabase.createClient(
+  'https://nindbkahmhbutpizbgpg.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+);
+
+const alumno = {
+  nombre: 'Alumno Prueba',
+  codigo: '0001',
+  curso: 'Curso A',
+  inicio: new Date()
+};
+
+function leer(texto) {
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'es-ES';
+    speechSynthesis.speak(u);
+  }
+}
+
+function escuchar() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Tu navegador no soporta reconocimiento de voz.");
+    return;
+  }
+  const reconocimiento = new webkitSpeechRecognition();
+  reconocimiento.lang = 'es-ES';
+  reconocimiento.onresult = function(event) {
+    const resultado = event.results[0][0].transcript;
+    seleccionar(resultado);
+  };
+  reconocimiento.start();
+}
+
+function seleccionar(opcion) {
+  const pregunta = document.getElementById('pregunta').textContent.trim();
+  const respuestaCorrecta = 'Buenos Aires';
+  const esCorrecta = opcion.toLowerCase() === respuestaCorrecta.toLowerCase();
+
+  alert(`Seleccionaste: ${opcion}\nRespuesta ${esCorrecta ? 'correcta' : 'incorrecta'}`);
+
+  supabase.from('respuestas').insert([{
+    texto_pregunta: pregunta,
+    respuesta: opcion,
+    respuesta_correcta: respuestaCorrecta,
+    es_correcta: esCorrecta,
+    modo: 'examen',
+    fecha: new Date().toISOString(),
+    curso: alumno.curso,
+    nombre: alumno.nombre,
+    codigo: alumno.codigo,
+    rol: 'alumno',
+    origen: 'manual'
+  }]);
+}
+</script>
 </body>
 </html>
