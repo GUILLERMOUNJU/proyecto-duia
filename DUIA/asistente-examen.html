@@ -149,18 +149,13 @@ function siguientePregunta() {
   if (indice >= preguntas.length) return mostrarResultado();
 
   const p = preguntas[indice];
-  const texto = p.pregunta || p.texto || 'Sin texto';
-  document.getElementById('pregunta').textContent = texto;
+  document.getElementById('pregunta').textContent = p.pregunta || 'Sin texto';
 
   const opcionesDiv = document.getElementById('opciones');
   opcionesDiv.innerHTML = '';
 
   let opciones = [];
-  try {
-    opciones = JSON.parse(p.opciones || '[]');
-  } catch {
-    opciones = [];
-  }
+  try { opciones = JSON.parse(p.opciones || '[]'); } catch {}
 
   opciones.forEach(op => {
     const btn = document.createElement('button');
@@ -194,8 +189,7 @@ function actualizarTemporizador() {
 
 function responder(opcion, pregunta) {
   clearInterval(temporizadorID);
-  const correcta = pregunta.respuesta_correcta || '';
-  const esCorrecta = opcion === correcta;
+  const esCorrecta = opcion === pregunta.respuesta_correcta;
   if (esCorrecta) puntaje++;
   guardarRespuesta(opcion, pregunta, esCorrecta);
   indice++;
@@ -212,26 +206,13 @@ function mostrarResultado() {
 async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
   await supabase.from('respuestas').insert({
     pregunta_id: pregunta.id,
-    texto_pregunta: pregunta.pregunta || pregunta.texto || 'Sin texto',
     respuesta: respuesta || 'Sin respuesta',
-    respuesta_correcta: pregunta.respuesta_correcta || '',
-    es_correcta: esCorrecta,
     modo: 'examen',
     fecha: new Date().toISOString(),
-    origen: 'manual',
     curso: 'Curso 1',
-    materia: 'Matemática',
-    nombre,
-    codigo,
-    rol
+    materia: 'Matemática'
   });
 }
-
-window.onblur = () => {
-  clearInterval(temporizadorID);
-  indice++;
-  siguientePregunta();
-};
 </script>
 </body>
 </html>
