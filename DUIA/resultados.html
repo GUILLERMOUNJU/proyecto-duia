@@ -8,57 +8,83 @@
     body {
       font-family: 'Poppins', sans-serif;
       background-color: #f4f6f9;
-      padding: 30px;
-      color: #333;
+      margin: 0;
+      padding: 20px;
     }
     h1 {
-      color: #003366;
       text-align: center;
-    }
-    select {
-      font-size: 1rem;
-      padding: 10px;
+      color: #003366;
       margin-bottom: 20px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
+    .filtros {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    select {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    .resultado-card {
       background-color: white;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: transform 0.2s;
     }
-    th, td {
-      padding: 12px;
-      border: 1px solid #ddd;
-      text-align: left;
+    .resultado-card:hover {
+      transform: scale(1.01);
     }
-    th {
-      background-color: #003366;
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: #003366;
+      margin-bottom: 10px;
+    }
+    .pregunta {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: #111;
+    }
+    .respuesta {
+      font-size: 1rem;
+      background-color: #f1f1f1;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 5px;
+    }
+    .modo {
+      font-size: 0.9rem;
       color: white;
+      background-color: #6c757d;
+      padding: 5px 10px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    .modo.examen {
+      background-color: #dc3545;
+    }
+    .modo.practica {
+      background-color: #0d6efd;
     }
   </style>
 </head>
 <body>
   <h1>📊 Resultados de Estudiantes</h1>
 
-  <label for="modoFiltro">Filtrar por modo:</label>
-  <select id="modoFiltro">
-    <option value="todos">Todos</option>
-    <option value="practica">Práctica</option>
-    <option value="examen">Examen</option>
-  </select>
+  <div class="filtros">
+    <label for="modoFiltro">Filtrar por modo:</label>
+    <select id="modoFiltro">
+      <option value="todos">Todos</option>
+      <option value="practica">Práctica</option>
+      <option value="examen">Examen</option>
+    </select>
+  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>📅 Fecha</th>
-        <th>🧠 Pregunta</th>
-        <th>📝 Respuesta</th>
-        <th>🎯 Modo</th>
-      </tr>
-    </thead>
-    <tbody id="tablaResultados"></tbody>
-  </table>
+  <div id="contenedorResultados"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -67,46 +93,45 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
     );
 
-    const tabla = document.getElementById('tablaResultados');
-    const filtro = document.getElementById('modoFiltro');
+    const contenedor = document.getElementById("contenedorResultados");
+    const filtro = document.getElementById("modoFiltro");
 
     async function cargarResultados() {
       let { data, error } = await supabase
         .from('respuestas')
-        .select(`
-          fecha,
-          respuesta,
-          modo,
-          pregunta:preguntas(texto)
-        `)
+        .select('fecha, respuesta, modo, pregunta:preguntas(texto)')
         .order('fecha', { ascending: false });
 
       if (error) {
-        tabla.innerHTML = `<tr><td colspan="4">Error al cargar datos: ${error.message}</td></tr>`;
+        contenedor.innerHTML = `<p style="color:red;">Error al cargar: ${error.message}</p>`;
         return;
       }
 
-      // Filtrar por modo
       const modo = filtro.value;
-      if (modo !== 'todos') {
+      if (modo !== "todos") {
         data = data.filter(r => r.modo === modo);
       }
 
-      // Renderizar
-      tabla.innerHTML = '';
+      contenedor.innerHTML = "";
       data.forEach(r => {
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-          <td>${new Date(r.fecha).toLocaleString()}</td>
-          <td>${r.pregunta?.texto || 'N/A'}</td>
-          <td>${r.respuesta}</td>
-          <td>${r.modo}</td>
+        const card = document.createElement("div");
+        card.className = "resultado-card";
+
+        const fecha = new Date(r.fecha).toLocaleString();
+
+        card.innerHTML = `
+          <div class="card-top">
+            <span>${fecha}</span>
+            <span class="modo ${r.modo}">${r.modo}</span>
+          </div>
+          <div class="pregunta">🧠 ${r.pregunta?.texto || 'Pregunta no encontrada'}</div>
+          <div class="respuesta">📝 ${r.respuesta}</div>
         `;
-        tabla.appendChild(fila);
+        contenedor.appendChild(card);
       });
     }
 
-    filtro.addEventListener('change', cargarResultados);
+    filtro.addEventListener("change", cargarResultados);
     cargarResultados();
   </script>
 </body>
