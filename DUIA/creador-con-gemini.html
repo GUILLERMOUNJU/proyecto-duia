@@ -28,8 +28,16 @@
       align-items: center;
       justify-content: space-between;
     }
-    header img { height: 50px; }
-    header h1 { font-size: 1.2rem; color: var(--azul-unju); margin: 0; }
+    header img.logo { height: 50px; }
+    header img.flag { height: 30px; margin-left: 10px; }
+    header h1 {
+      font-size: 1.2rem;
+      color: var(--azul-unju);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .container {
       max-width: 800px;
       margin: 20px auto;
@@ -67,8 +75,11 @@
 </head>
 <body>
 <header>
-  <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
-  <h1>SIED - Facultad de Ingeniería - UNJu</h1>
+  <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu" class="logo">
+  <h1>
+    SIED - Facultad de Ingeniería - UNJu
+    <img src="https://flagcdn.com/w40/ar.png" alt="Argentina" class="flag">
+  </h1>
 </header>
 
 <div class="container">
@@ -87,11 +98,12 @@
 </div>
 
 <script>
-const API_KEY = "AIzaSyBCjDUPyVAcJQy7KRqEpn885BrFF2DmISE";
 const supabase = supabase.createClient(
   'https://nindbkahmhbutpizbgpg.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
 );
+
+const API_KEY = "AIzaSyBCjDUPyVAcJQy7KRqEpn885BrFF2DmISE";
 
 async function procesarTexto() {
   const mensaje = document.getElementById("mensaje");
@@ -114,7 +126,7 @@ async function procesarTexto() {
 
   mensaje.textContent = "🤖 Enviando a Gemini...";
   const prompt = `
-Actúa como generador de preguntas para estudiantes. A partir del siguiente contenido, devolveme una lista de 5 preguntas en formato JSON. 
+Actuá como generador de preguntas para estudiantes. A partir del siguiente contenido, devolveme una lista de 5 preguntas en formato JSON. 
 Cada pregunta debe tener:
 - "texto_pregunta"
 - "opciones" (4 opciones)
