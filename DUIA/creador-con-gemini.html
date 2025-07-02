@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>DUIA - Crear Preguntas con Gemini</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
     :root {
@@ -85,6 +86,11 @@
 <script>
 const API_KEY = "AIzaSyBCjDUPyVAcJQy7KRqEpn885BrFF2DmISE";
 
+const supabase = supabase.createClient(
+  'https://nindbkahmhbutpizbgpg.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...vsQ' // acortado por privacidad
+);
+
 async function procesarTexto() {
   const mensaje = document.getElementById("mensaje");
   const resultado = document.getElementById("resultadoGemini");
@@ -135,7 +141,7 @@ Texto:
     mensaje.textContent = `✅ Se generaron ${preguntas.length} preguntas.`;
     mensaje.className = "mensaje exito";
 
-    preguntas.forEach(p => {
+    for (const p of preguntas) {
       resultado.innerHTML += `
         <div class="pregunta-card">
           <strong>${p.texto_pregunta}</strong><br>
@@ -144,10 +150,20 @@ Texto:
           🧠 Fundamento: ${p.fundamento}
         </div>
       `;
-    });
+
+      // Guardar en Supabase
+      await supabase.from('preguntas').insert({
+        pregunta: p.texto_pregunta,
+        opciones: JSON.stringify(p.opciones),
+        respuesta_correcta: p.respuesta_correcta,
+        fundamento: p.fundamento,
+        origen: 'gemini'
+      });
+    }
+
   } catch (err) {
     console.error(err);
-    mensaje.textContent = "❌ Error al generar preguntas con Gemini.";
+    mensaje.textContent = "❌ Error al generar o guardar preguntas.";
     mensaje.className = "mensaje error";
   }
 }
