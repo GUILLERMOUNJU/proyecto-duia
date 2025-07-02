@@ -62,9 +62,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const supabaseUrl = 'https://nindbkahmhbutpizbgpg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    const supabase = supabase.createClient(
+      'https://nindbkahmhbutpizbgpg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+    );
 
     const tabla = document.getElementById('tablaResultados');
     const filtro = document.getElementById('modoFiltro');
@@ -72,7 +73,12 @@
     async function cargarResultados() {
       let { data, error } = await supabase
         .from('respuestas')
-        .select('fecha, respuesta, modo, pregunta_id, preguntas:texto_pregunta')
+        .select(`
+          fecha,
+          respuesta,
+          modo,
+          pregunta:preguntas(texto)
+        `)
         .order('fecha', { ascending: false });
 
       if (error) {
@@ -80,19 +86,19 @@
         return;
       }
 
-      // Filtrar si se seleccionó un modo específico
+      // Filtrar por modo
       const modo = filtro.value;
       if (modo !== 'todos') {
         data = data.filter(r => r.modo === modo);
       }
 
-      // Renderizar tabla
+      // Renderizar
       tabla.innerHTML = '';
       data.forEach(r => {
         const fila = document.createElement('tr');
         fila.innerHTML = `
           <td>${new Date(r.fecha).toLocaleString()}</td>
-          <td>${r.preguntas || '(texto no disponible)'}</td>
+          <td>${r.pregunta?.texto || 'N/A'}</td>
           <td>${r.respuesta}</td>
           <td>${r.modo}</td>
         `;
@@ -105,3 +111,4 @@
   </script>
 </body>
 </html>
+
