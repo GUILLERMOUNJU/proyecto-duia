@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DUIA - Examen</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --azul-unju: #003366;
@@ -62,24 +63,19 @@
       width: 100%;
       max-width: 400px;
     }
-    #resultadoFinal {
-      font-size: 1.2rem;
-      margin-top: 20px;
-    }
-    input, select {
+    input, select, button {
       display: block;
       margin: 10px auto;
       padding: 10px;
       width: 80%;
       max-width: 400px;
       font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
-    #identificacion button, button {
+    button {
       background-color: var(--azul-unju);
       color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
       cursor: pointer;
     }
     table {
@@ -95,6 +91,7 @@
     th {
       background: #eee;
     }
+    canvas { margin-top: 30px; }
   </style>
 </head>
 <body>
@@ -122,16 +119,16 @@
 </div>
 
 <div class="container">
-  <h3>📊 Respuestas Registradas</h3>
+  <h3>📋 Resultados Registrados</h3>
   <select id="filtroMateria" onchange="mostrarTablaRespuestas()">
     <option value="">Todas las materias</option>
     <option value="Matemática">Matemática</option>
     <option value="Lengua">Lengua</option>
     <option value="Historia">Historia</option>
-    <!-- Agregá más si lo necesitás -->
   </select>
   <button onclick="mostrarTablaRespuestas()">Ver respuestas</button>
   <div id="tablaRespuestas"></div>
+  <canvas id="graficoEstadisticas" width="400" height="200"></canvas>
 </div>
 
 <script>
@@ -147,7 +144,6 @@ async function iniciarExamen() {
   nombre = document.getElementById('nombre').value.trim();
   codigo = document.getElementById('codigo').value.trim();
   rol = document.getElementById('rol').value;
-
   if (!nombre || !codigo) return alert('Por favor, completá todos los campos.');
 
   const { data, error } = await supabase.from('preguntas').select('*').limit(10);
@@ -155,7 +151,6 @@ async function iniciarExamen() {
     document.getElementById('pregunta').innerText = '❌ No se pudieron cargar preguntas.';
     return;
   }
-
   preguntas = data;
   document.getElementById('identificacion').style.display = 'none';
   document.getElementById('contenido-container').style.display = 'block';
@@ -165,15 +160,12 @@ async function iniciarExamen() {
 
 function siguientePregunta() {
   if (indice >= preguntas.length) return mostrarResultado();
-
   const p = preguntas[indice];
   document.getElementById('pregunta').textContent = p.pregunta || 'Sin texto';
   const opcionesDiv = document.getElementById('opciones');
   opcionesDiv.innerHTML = '';
-
   let opciones = [];
   try { opciones = JSON.parse(p.opciones || '[]'); } catch {}
-
   opciones.forEach(op => {
     const btn = document.createElement('button');
     btn.className = 'opcion';
@@ -181,7 +173,6 @@ function siguientePregunta() {
     btn.onclick = () => responder(op, p);
     opcionesDiv.appendChild(btn);
   });
-
   iniciarTemporizador();
 }
 
@@ -217,8 +208,7 @@ function mostrarResultado() {
   document.getElementById('pregunta').innerHTML = '';
   document.getElementById('opciones').innerHTML = '';
   document.getElementById('temporizador').innerHTML = '';
-  document.getElementById('resultadoFinal').textContent =
-    `📘 Has finalizado el examen. Obtuviste ${puntaje} de ${preguntas.length} respuestas correctas.`;
+  document.getElementById('resultadoFinal').textContent = `📘 Has finalizado el examen. Obtuviste ${puntaje} de ${preguntas.length} respuestas correctas.`;
 }
 
 async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
@@ -237,38 +227,46 @@ async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
 
 async function mostrarTablaRespuestas() {
   const contenedor = document.getElementById("tablaRespuestas");
-  contenedor.innerHTML = "🔄 Cargando respuestas...";
-
+  contenedor.innerHTML = "🔄 Cargando...";
   const filtro = document.getElementById("filtroMateria").value;
-  let query = supabase.from("respuestas").select("*").order("fecha", { ascending: false }).limit(50);
+  let query = supabase.from("respuestas").select("*").order("fecha", { ascending: false }).limit(100);
   if (filtro) query = query.eq("materia", filtro);
-
   const { data, error } = await query;
+  if (error || !data) return contenedor.innerHTML = "❌ Error al cargar respuestas.";
 
-  if (error) {
-    contenedor.innerHTML = "❌ Error al cargar las respuestas.";
-    console.error(error);
-    return;
-  }
-
-  if (!data.length) {
-    contenedor.innerHTML = "⚠️ No hay respuestas registradas.";
-    return;
-  }
-
-  let tabla = `<table><tr>
-    <th>🆔</th><th>Pregunta ID</th><th>Respuesta</th>
-    <th>Modo</th><th>Curso</th><th>Materia</th><th>Fecha</th>
-  </tr>`;
+  let tabla = `<table><tr><th>🆔</th><th>Pregunta</th><th>Respuesta</th><th>Nombre</th><th>Rol</th><th>Materia</th><th>Fecha</th></tr>`;
   data.forEach(r => {
-    tabla += `<tr>
-      <td>${r.id}</td><td>${r.pregunta_id}</td><td>${r.respuesta}</td>
-      <td>${r.modo}</td><td>${r.curso}</td><td>${r.materia}</td>
-      <td>${new Date(r.fecha).toLocaleString()}</td>
-    </tr>`;
+    tabla += `<tr><td>${r.id}</td><td>${r.pregunta_id}</td><td>${r.respuesta}</td><td>${r.nombre || '-'}</td><td>${r.rol}</td><td>${r.materia}</td><td>${new Date(r.fecha).toLocaleString()}</td></tr>`;
   });
-  tabla += "</table>";
+  tabla += `</table>`;
   contenedor.innerHTML = tabla;
+  dibujarGrafico(data);
+}
+
+function dibujarGrafico(data) {
+  const ctx = document.getElementById("graficoEstadisticas").getContext("2d");
+  const materias = {};
+  data.forEach(r => {
+    const m = r.materia;
+    const esCorrecta = r.respuesta === 'Sin respuesta' ? false : true;
+    materias[m] = materias[m] || { correctas: 0, incorrectas: 0 };
+    if (esCorrecta) materias[m].correctas++;
+    else materias[m].incorrectas++;
+  });
+  const labels = Object.keys(materias);
+  const correctas = labels.map(m => materias[m].correctas);
+  const incorrectas = labels.map(m => materias[m].incorrectas);
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Correctas", backgroundColor: "#4caf50", data: correctas },
+        { label: "Incorrectas", backgroundColor: "#f44336", data: incorrectas }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: "top" } } }
+  });
 }
 </script>
 </body>
