@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DUIA - Inicio</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      color: #003366;
+      font-size: 2rem;
+      margin-bottom: 30px;
+    }
+    .botones {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 320px;
+    }
+    .boton {
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      color: white;
+    }
+    .boton:hover {
+      transform: scale(1.05);
+    }
+    .asistente { background-color: #0d6efd; }
+    .creador { background-color: #dc3545; }
+    .resultados { background-color: #28a745; }
+  </style>
+</head>
+<body>
+  <h1>Bienvenido a DUIA</h1>
+  <div class="botones">
+    <button class="boton asistente" onclick="location.href='DUIA/asistente-alumno.html'">🧑‍🎓 Asistente Educativo</button>
+    <button class="boton creador" onclick="location.href='DUIA/creador.html'">✏️ Creador de Preguntas</button>
+    <button class="boton resultados" onclick="location.href='DUIA/resultados.html'">📊 Ver Resultados</button>
+  </div>
+</body>
+</html>
