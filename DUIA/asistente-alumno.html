@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DUIA - Asistente Alumno</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --azul-unju: #003366;
@@ -39,12 +40,6 @@
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
-    .timer {
-      font-weight: bold;
-      color: var(--rojo);
-      text-align: right;
-      margin-bottom: 10px;
-    }
     .pregunta {
       font-size: 1.2rem;
       font-weight: 600;
@@ -76,9 +71,6 @@
       text-align: center;
       margin-top: 20px;
     }
-    #identificacion {
-      text-align: center;
-    }
     input, select {
       display: block;
       margin: 10px auto;
@@ -96,72 +88,59 @@
       cursor: pointer;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header>
   <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
   <h1>SIED - Facultad de Ingeniería - UNJu</h1>
 </header>
+
 <div class="container" id="identificacion">
   <h2>👤 Ingreso</h2>
   <input type="text" id="nombre" placeholder="Nombre completo" required />
-  <input type="text" id="codigo" placeholder="Código institucional (DNI, ID)" required />
+  <input type="text" id="codigo" placeholder="Código institucional" required />
   <select id="rol">
     <option value="alumno">Alumno</option>
     <option value="docente">Docente</option>
   </select>
   <button onclick="iniciar('practica')">Comenzar práctica</button>
 </div>
+
 <div class="container" style="display:none;" id="contenido-container">
-  <div class="timer" id="temporizador"></div>
   <div id="contenido"></div>
   <div id="resultadoFinal"></div>
 </div>
+
 <script>
 const supabase = supabase.createClient(
   'https://nindbkahmhbutpizbgpg.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
 );
 
-let preguntas = [
-  {
-    texto: "¿Cuál es la capital de Francia?",
-    opciones: ["París", "Madrid", "Roma", "Lisboa"],
-    respuesta_correcta: "París",
-    fundamento: "París es la capital y ciudad más poblada de Francia."
-  },
-  {
-    texto: "¿Cuánto es 2 + 2?",
-    opciones: ["3", "4", "5", "2"],
-    respuesta_correcta: "4",
-    fundamento: "2 + 2 es una suma básica que da como resultado 4."
-  }
-];
-
+let preguntas = [];
 let indice = 0;
 let puntaje = 0;
+let nombre = "", codigo = "", rol = "";
 let modoJuego = "practica";
-let tiempoPorPregunta = 30;
-let tiempoRestante;
-let temporizadorID;
-let nombre = "";
-let codigo = "";
-let rol = "";
 
-function iniciar(modo) {
-  const nombreInput = document.getElementById('nombre').value.trim();
-  const codigoInput = document.getElementById('codigo').value.trim();
-  const rolInput = document.getElementById('rol').value;
+async function iniciar(modo) {
+  nombre = document.getElementById('nombre').value.trim();
+  codigo = document.getElementById('codigo').value.trim();
+  rol = document.getElementById('rol').value;
 
-  if (!nombreInput || !codigoInput) return alert('Por favor, completa todos los campos.');
-  nombre = nombreInput;
-  codigo = codigoInput;
-  rol = rolInput;
+  if (!nombre || !codigo) return alert('Por favor, completa todos los campos.');
 
   modoJuego = modo;
   document.getElementById('identificacion').style.display = 'none';
   document.getElementById('contenido-container').style.display = 'block';
+
+  const { data, error } = await supabase.from('preguntas').select('*').limit(10);
+  if (error || !data.length) {
+    document.getElementById('contenido').innerHTML = '<p>No hay preguntas disponibles.</p>';
+    return;
+  }
+
+  preguntas = data;
   indice = 0;
   puntaje = 0;
   iniciarPregunta();
@@ -169,19 +148,20 @@ function iniciar(modo) {
 
 function iniciarPregunta() {
   if (indice >= preguntas.length) return mostrarResultado();
-  const contenedor = document.getElementById('contenido');
   const p = preguntas[indice];
+  const contenedor = document.getElementById('contenido');
   contenedor.innerHTML = '';
 
-  const h2 = document.createElement('div');
-  h2.className = 'pregunta';
-  h2.innerHTML = `${p.texto} <button class="voz" onclick="leer('${p.texto}')">🔊</button>`;
-  contenedor.appendChild(h2);
+  const preguntaDiv = document.createElement('div');
+  preguntaDiv.className = 'pregunta';
+  preguntaDiv.innerHTML = `${p.pregunta} <button class="voz" onclick="leer('${p.pregunta}')">🔊</button>`;
+  contenedor.appendChild(preguntaDiv);
 
-  p.opciones.forEach(op => {
+  const opciones = JSON.parse(p.opciones || '[]');
+  opciones.forEach(op => {
     const btn = document.createElement('button');
     btn.className = 'opcion';
-    btn.innerHTML = `${op} <button class="voz" onclick=\"event.stopPropagation();leer('${op}')\">🔊</button>`;
+    btn.innerHTML = `${op} <button class="voz" onclick="event.stopPropagation();leer('${op}')">🔊</button>`;
     btn.onclick = () => seleccionar(op);
     contenedor.appendChild(btn);
   });
@@ -193,21 +173,22 @@ function iniciarPregunta() {
   contenedor.appendChild(mic);
 }
 
-async function seleccionar(opcion) {
-  const contenedor = document.getElementById('contenido');
+function seleccionar(opcion) {
   const p = preguntas[indice];
-  const correcto = opcion === p.respuesta_correcta;
-  if (correcto) puntaje++;
+  const correcta = opcion === p.respuesta_correcta;
+  if (correcta) puntaje++;
 
-  await guardarRespuesta(p.texto, opcion, p.respuesta_correcta, correcto);
+  const contenedor = document.getElementById('contenido');
   const f = document.createElement('div');
-  f.className = 'feedback ' + (correcto ? 'correcto' : 'incorrecto');
-  f.textContent = correcto ? '✅ Correcto' : `❌ Incorrecto. La respuesta correcta es: ${p.respuesta_correcta}`;
+  f.className = 'feedback ' + (correcta ? 'correcto' : 'incorrecto');
+  f.textContent = correcta ? '✅ Correcto' : `❌ Incorrecto. La respuesta correcta es: ${p.respuesta_correcta}`;
   contenedor.appendChild(f);
 
   const expl = document.createElement('div');
-  expl.textContent = '🧠 ' + p.fundamento;
+  expl.textContent = '🧠 ' + (p.fundamento || 'Sin fundamento');
   contenedor.appendChild(expl);
+
+  guardarRespuesta(p.id, p.pregunta, opcion, p.respuesta_correcta, correcta);
 
   setTimeout(() => {
     indice++;
@@ -234,30 +215,29 @@ function escuchar() {
   rec.lang = 'es-ES';
   rec.onresult = e => {
     const dicho = e.results[0][0].transcript.trim();
-    const op = preguntas[indice].opciones.find(o => o.toLowerCase() === dicho.toLowerCase());
+    const opciones = JSON.parse(preguntas[indice].opciones || '[]');
+    const op = opciones.find(o => o.toLowerCase() === dicho.toLowerCase());
     if (op) seleccionar(op);
     else alert("No se reconoció una opción válida: " + dicho);
   };
   rec.start();
 }
 
-async function guardarRespuesta(pregunta, respuesta, correcta, esCorrecta) {
-  await supabase.from('respuestas').insert([
-    {
-      pregunta_id: null,
-      respuesta: respuesta,
-      modo: modoJuego,
-      fecha: new Date().toISOString(),
-      origen: window.navigator.userAgent,
-      es_correcta: esCorrecta,
-      texto_pregunta: pregunta,
-      curso: 'Curso 1',
-      materia: 'Matemática',
-      nombre: nombre,
-      codigo: codigo,
-      rol: rol
-    }
-  ]);
+async function guardarRespuesta(id, texto, respuesta, correcta, esCorrecta) {
+  await supabase.from('respuestas').insert([{
+    pregunta_id: id,
+    texto_pregunta: texto,
+    respuesta: respuesta,
+    respuesta_correcta: correcta,
+    es_correcta: esCorrecta,
+    modo: modoJuego,
+    fecha: new Date().toISOString(),
+    curso: 'Curso 1',
+    nombre,
+    codigo,
+    rol,
+    origen: 'manual'
+  }]);
 }
 </script>
 </body>
