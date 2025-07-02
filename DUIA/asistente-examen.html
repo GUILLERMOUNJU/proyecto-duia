@@ -67,11 +67,18 @@
       text-align: center;
       margin-top: 20px;
     }
-    #inicioExamen button {
-      padding: 12px 24px;
+    input, select {
+      display: block;
+      margin: 10px auto;
+      padding: 10px;
+      width: 80%;
+      max-width: 400px;
       font-size: 1rem;
+    }
+    #identificacion button {
       background-color: var(--azul-unju);
       color: white;
+      padding: 10px 20px;
       border: none;
       border-radius: 8px;
       cursor: pointer;
@@ -83,9 +90,14 @@
   <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
   <h1>SIED - Facultad de Ingeniería - UNJu</h1>
 </header>
-<div class="container" id="inicioExamen">
-  <h2>📝 Examen</h2>
-  <p>El examen comenzará y tendrás 30 segundos por pregunta. No habrá ayuda, voz ni repeticiones.</p>
+<div class="container" id="identificacion">
+  <h2>👤 Ingreso al Examen</h2>
+  <input type="text" id="nombre" placeholder="Nombre completo" required />
+  <input type="text" id="codigo" placeholder="Código institucional (DNI, ID)" required />
+  <select id="rol">
+    <option value="alumno">Alumno</option>
+    <option value="docente">Docente</option>
+  </select>
   <button onclick="iniciarExamen()">Comenzar Examen</button>
 </div>
 <div class="container" style="display:none;" id="contenido-container">
@@ -105,15 +117,26 @@ let indice = 0;
 let puntaje = 0;
 let tiempo = 30;
 let temporizadorID;
+let nombre = "";
+let codigo = "";
+let rol = "";
 
 async function iniciarExamen() {
+  const nombreInput = document.getElementById('nombre').value.trim();
+  const codigoInput = document.getElementById('codigo').value.trim();
+  const rolInput = document.getElementById('rol').value;
+  if (!nombreInput || !codigoInput) return alert('Por favor completa todos los campos.');
+  nombre = nombreInput;
+  codigo = codigoInput;
+  rol = rolInput;
+
   const { data, error } = await supabase.from('preguntas').select('*');
   if (error || !data.length) {
     document.getElementById('pregunta').innerText = 'No se pudieron cargar preguntas.';
     return;
   }
   preguntas = data;
-  document.getElementById('inicioExamen').style.display = 'none';
+  document.getElementById('identificacion').style.display = 'none';
   document.getElementById('contenido-container').style.display = 'block';
   indice = 0;
   puntaje = 0;
@@ -183,7 +206,10 @@ async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
     es_correcta: esCorrecta,
     texto_pregunta: pregunta.texto,
     curso: 'Curso 1',
-    materia: 'Matemática'
+    materia: 'Matemática',
+    nombre: nombre,
+    codigo: codigo,
+    rol: rol
   });
 }
 
