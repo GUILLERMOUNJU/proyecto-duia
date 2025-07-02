@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DUIA - Creador de Cuestionarios</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* ... (Todo el CSS que ya teníamos, no cambia) ... */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
         :root {
             --color-primario: #003366; --color-acento: #D44E41; --color-fondo: #f4f6f9;
@@ -25,13 +27,14 @@
         .btn-primario:disabled { background-color: #5a6268; cursor: not-allowed;}
         .loader { text-align: center; padding: 40px; display: none; }
         .loader p { font-size: 1.1rem; font-weight: 500; color: var(--color-primario); }
-        /* ... el resto de los estilos no cambian ... */
     </style>
 </head>
 <body>
     <div class="creator-container">
         <header class="creator-header">
-            <div class="title-group"><h1>DUIA: Creador de Cuestionarios</h1></div>
+            <div class="title-group">
+                <h1>DUIA: Creador de Cuestionarios</h1>
+            </div>
             <img src="https://i.imgur.com/qL3gL8g.png" alt="Logo Facultad de Ingeniería UNJu">
         </header>
 
@@ -47,14 +50,8 @@
                 <p id="loader-text">...</p>
             </div>
         </section>
-        
-        <section class="step-card" id="review-section" style="display:none;">
-            <h2>Paso 2: Revisar Preguntas Sugeridas</h2>
-            <div id="question-list"></div>
-        </section>
-    </div>
+        </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // --- Conexión al proyecto DUIA ---
         const SUPABASE_URL = 'https://nindbkahmhbutpizbgpg.supabase.co';
@@ -77,13 +74,13 @@
             if (!file) { alert('Por favor, selecciona un archivo PDF primero.'); return; }
 
             try {
-                // --- PASO 1: EXTRAER TEXTO DEL PDF ---
+                // 1. Extraer texto del PDF
                 loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
                 loader.style.display = 'block';
                 generateBtn.disabled = true;
-
-                const pdfData = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                
+                const fileBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise;
                 let textoCompleto = '';
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
@@ -91,30 +88,27 @@
                     textoCompleto += textContent.items.map(item => item.str).join(' ');
                 }
                 
-                console.log("Texto extraído. Enviando a la IA...");
                 loaderText.textContent = 'Texto extraído. Conectando con Gemini para generar preguntas... 🧠';
 
-                // --- PASO 2: LLAMAR A NUESTRA FUNCIÓN SERVERLESS ---
+                // 2. LLAMAR A NUESTRA FUNCIÓN SERVERLESS
                 const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
                     body: { textoPDF: textoCompleto },
                 });
 
                 if (error) { throw error; }
                 
-                // --- PASO 3: ÉXITO! MOSTRAMOS LAS PREGUNTAS EN LA CONSOLA ---
+                // 3. ¡ÉXITO! Mostramos las preguntas en la consola
                 loader.style.display = 'none';
                 generateBtn.disabled = false;
                 console.log("--- ¡PREGUNTAS RECIBIDAS DE GEMINI! ---");
                 console.log(data); 
                 alert("¡Preguntas generadas con éxito! Revisa la consola (F12) para ver el resultado.");
-                
-                // Aquí, en el futuro, pondremos el código para "pintar" las preguntas en la pantalla.
 
             } catch (error) {
                 loader.style.display = 'none';
                 generateBtn.disabled = false;
                 console.error('Error en el proceso:', error);
-                alert(`Ocurrió un error: ${error.message}`);
+                alert(`Ocurrió un error al contactar a la IA: ${error.message}`);
             }
         });
     </script>
