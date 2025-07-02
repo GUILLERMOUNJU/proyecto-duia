@@ -105,6 +105,11 @@
       cursor: pointer;
     }
 
+    .finalizar {
+      margin-top: 30px;
+      background-color: #d44e41;
+    }
+
     label, input, select, button {
       display: block;
       margin: 5px auto 15px;
@@ -167,17 +172,9 @@
   <h2>📝 Resuelve tu examen respondiendo con voz o haciendo clic</h2>
   <p>Este módulo registra tus respuestas y el tiempo de sesión automáticamente.</p>
   <button class="microfono" onclick="escuchar()">🎤 Responder por voz</button>
-  <div class="pregunta" id="pregunta">¿Cuál es la capital de Argentina?
-    <button class="voz" onclick="leer('¿Cuál es la capital de Argentina?')">🔊</button>
-  </div>
-  <div class="opcion" onclick="seleccionar('Buenos Aires')">
-    Buenos Aires
-    <button class="voz" onclick="event.stopPropagation(); leer('Buenos Aires')">🔊</button>
-  </div>
-  <div class="opcion" onclick="seleccionar('Córdoba')">
-    Córdoba
-    <button class="voz" onclick="event.stopPropagation(); leer('Córdoba')">🔊</button>
-  </div>
+  <div class="pregunta" id="pregunta"></div>
+  <div id="opciones"></div>
+  <button class="finalizar" onclick="finalizarExamen()">✅ Finalizar examen</button>
 </div>
 <script>
 const supabase = supabase.createClient(
@@ -191,6 +188,27 @@ const alumno = {
   curso: 'Curso A',
   inicio: new Date()
 };
+
+let preguntaActual = null;
+
+async function cargarPregunta() {
+  const { data, error } = await supabase
+    .from('preguntas')
+    .select('*')
+    .order('id', { ascending: false })
+    .limit(1);
+
+  if (data && data.length > 0) {
+    preguntaActual = data[0];
+    document.getElementById('pregunta').innerHTML = `${preguntaActual.texto} <button class="voz" onclick="leer('${preguntaActual.texto}')">🔊</button>`;
+    const opcionesHtml = preguntaActual.opciones.map(op => `
+      <div class="opcion" onclick="seleccionar('${op}')">
+        ${op}<button class="voz" onclick="event.stopPropagation(); leer('${op}')">🔊</button>
+      </div>
+    `).join('');
+    document.getElementById('opciones').innerHTML = opcionesHtml;
+  }
+}
 
 function leer(texto) {
   if ('speechSynthesis' in window) {
@@ -215,16 +233,13 @@ function escuchar() {
 }
 
 function seleccionar(opcion) {
-  const pregunta = document.getElementById('pregunta').textContent.trim();
-  const respuestaCorrecta = 'Buenos Aires';
-  const esCorrecta = opcion.toLowerCase() === respuestaCorrecta.toLowerCase();
-
+  const esCorrecta = opcion.toLowerCase() === preguntaActual.correcta.toLowerCase();
   alert(`Seleccionaste: ${opcion}\nRespuesta ${esCorrecta ? 'correcta' : 'incorrecta'}`);
 
   supabase.from('respuestas').insert([{
-    texto_pregunta: pregunta,
+    texto_pregunta: preguntaActual.texto,
     respuesta: opcion,
-    respuesta_correcta: respuestaCorrecta,
+    respuesta_correcta: preguntaActual.correcta,
     es_correcta: esCorrecta,
     modo: 'examen',
     fecha: new Date().toISOString(),
@@ -235,6 +250,15 @@ function seleccionar(opcion) {
     origen: 'manual'
   }]);
 }
+
+function finalizarExamen() {
+  const fin = new Date();
+  const duracion = Math.floor((fin - alumno.inicio) / 1000);
+  alert(`Gracias por completar el examen. Tiempo total: ${duracion} segundos.`);
+  // Aquí podrías redirigir o guardar en otra tabla "sesiones"
+}
+
+cargarPregunta();
 </script>
 </body>
 </html>
