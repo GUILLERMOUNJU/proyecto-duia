@@ -2,40 +2,33 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DUIA - Generar Preguntas con Gemini</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.5/+esm"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DUIA - Crear Preguntas con Gemini</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <style>
     :root {
       --azul-unju: #003366;
-      --rojo-unju: #d44e41;
-      --gris-fondo: #f4f6f9;
+      --rojo: #d44e41;
+      --gris: #f4f6f9;
       --blanco: #ffffff;
     }
     body {
       font-family: 'Poppins', sans-serif;
-      background-color: var(--gris-fondo);
+      background: var(--gris);
+      color: #333;
       margin: 0;
       padding: 0;
-      color: #333;
     }
     header {
+      background: var(--blanco);
+      padding: 10px 20px;
+      border-bottom: 4px solid var(--azul-unju);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background-color: var(--blanco);
-      padding: 10px 20px;
-      border-bottom: 4px solid var(--azul-unju);
     }
-    header img {
-      height: 60px;
-    }
-    header h1 {
-      color: var(--azul-unju);
-      font-size: 1.3rem;
-      margin: 0;
-    }
+    header img { height: 50px; }
+    header h1 { font-size: 1.2rem; color: var(--azul-unju); margin: 0; }
     .container {
       max-width: 800px;
       margin: 20px auto;
@@ -43,166 +36,144 @@
     }
     textarea, input[type="file"] {
       width: 100%;
-      margin-top: 10px;
-      margin-bottom: 10px;
       padding: 10px;
       font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+      margin: 10px 0;
     }
     button {
-      background-color: var(--azul-unju);
+      background: var(--azul-unju);
       color: white;
-      border: none;
       padding: 10px 20px;
+      border: none;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 1rem;
-      margin-top: 10px;
     }
     button:hover {
-      background-color: #0059b3;
-    }
-    #resultadoGemini {
-      margin-top: 20px;
+      background: #0059b3;
     }
     .pregunta-card {
       background: var(--blanco);
       padding: 15px;
+      margin-top: 15px;
       border-radius: 6px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      margin-bottom: 15px;
-      border-left: 4px solid var(--azul-unju);
     }
     .mensaje {
+      margin-top: 10px;
       font-weight: bold;
-      margin-top: 15px;
     }
     .error { color: red; }
     .exito { color: green; }
   </style>
 </head>
 <body>
-  <header>
-    <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo Facultad de Ingeniería UNJu">
-    <h1>SIED - Facultad de Ingeniería - UNJu</h1>
-  </header>
+<header>
+  <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
+  <h1>SIED - Facultad de Ingeniería - UNJu</h1>
+</header>
 
-  <div class="container">
-    <h2>📄 Generar preguntas con Gemini</h2>
-    <input type="file" id="archivoPDF" accept="application/pdf">
-    <textarea id="textoManual" rows="4" placeholder="O escribe el texto base..."></textarea>
-    <button onclick="procesarTextoConGemini()">✨ Generar con IA</button>
-    <div class="mensaje" id="mensaje"></div>
-    <div id="resultadoGemini"></div>
-    <button onclick="location.href='../index.html'">🔙 Volver al Menú Principal</button>
-  </div>
+<div class="container">
+  <h2>📄 Generar preguntas con Gemini</h2>
+  <input type="file" id="archivoPDF" accept="application/pdf">
+  <textarea id="textoManual" rows="5" placeholder="O escribí el texto aquí..."></textarea>
+  <button onclick="procesarTexto()">✨ Generar con Gemini</button>
+  <div class="mensaje" id="mensaje"></div>
+  <div id="resultadoGemini"></div>
+  <button onclick="location.href='index.html'">🔙 Volver al Inicio</button>
+</div>
 
-  <script>
-    const GEMINI_API_KEY = 'AIzaSyCRI7_pIk_ZcHvTphZ8jOxx2wstKtM7S-E';
-    const supabase = createClient(
-      'https://nindbkahmhbutpizbgpg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
-    );
+<script>
+const API_KEY = "AIzaSyBCjDUPyVAcJQy7KRqEpn885BrFF2DmISE";
 
-    async function procesarTextoConGemini() {
-      const mensajeDiv = document.getElementById('mensaje');
-      const resultadoDiv = document.getElementById('resultadoGemini');
-      mensajeDiv.textContent = '';
-      resultadoDiv.innerHTML = '';
+async function procesarTexto() {
+  const mensaje = document.getElementById("mensaje");
+  const resultado = document.getElementById("resultadoGemini");
+  mensaje.textContent = "";
+  resultado.innerHTML = "";
 
-      let texto = document.getElementById('textoManual').value.trim();
-      if (!texto) {
-        const archivo = document.getElementById('archivoPDF').files[0];
-        if (!archivo) {
-          mensajeDiv.textContent = "📌 Por favor, subí un PDF o escribí texto.";
-          mensajeDiv.className = 'mensaje error';
-          return;
-        }
-        mensajeDiv.textContent = "📄 Extrayendo texto del PDF...";
-        texto = await extraerTextoDePDF(archivo);
-      }
+  let texto = document.getElementById("textoManual").value.trim();
 
-      mensajeDiv.textContent = "🤖 Generando preguntas con Gemini...";
+  if (!texto) {
+    const archivo = document.getElementById("archivoPDF").files[0];
+    if (!archivo) {
+      mensaje.textContent = "📌 Subí un PDF o escribí texto.";
+      mensaje.className = "mensaje error";
+      return;
+    }
+    mensaje.textContent = "📄 Extrayendo texto del PDF...";
+    texto = await extraerTextoDePDF(archivo);
+  }
 
+  mensaje.textContent = "🤖 Enviando a Gemini...";
+  const prompt = `
+Actúa como generador de preguntas para estudiantes. A partir del siguiente contenido, devolveme una lista de 5 preguntas en formato JSON. 
+Cada pregunta debe tener:
+- "texto_pregunta"
+- "opciones" (4 opciones)
+- "respuesta_correcta"
+- "fundamento"
+
+Texto:
+"""${texto}"""
+`;
+
+  try {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + API_KEY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+    const contenido = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!contenido) throw new Error("Respuesta vacía de Gemini.");
+
+    const preguntas = JSON.parse(contenido);
+
+    mensaje.textContent = `✅ Se generaron ${preguntas.length} preguntas.`;
+    mensaje.className = "mensaje exito";
+
+    preguntas.forEach(p => {
+      resultado.innerHTML += `
+        <div class="pregunta-card">
+          <strong>${p.texto_pregunta}</strong><br>
+          Opciones: ${p.opciones.join(', ')}<br>
+          ✔️ Correcta: ${p.respuesta_correcta}<br>
+          🧠 Fundamento: ${p.fundamento}
+        </div>
+      `;
+    });
+  } catch (err) {
+    console.error(err);
+    mensaje.textContent = "❌ Error al generar preguntas con Gemini.";
+    mensaje.className = "mensaje error";
+  }
+}
+
+async function extraerTextoDePDF(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
       try {
-        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Genera entre 3 y 5 preguntas de opción múltiple basadas en este contenido:\n\n${texto}\n\nCada pregunta debe tener:\n- texto_pregunta\n- opciones (array)\n- respuesta_correcta\n- fundamento\n\nFormato de salida: JSON válido como array de objetos.`
-              }]
-            }]
-          })
-        });
-
-        const json = await response.json();
-        const contenido = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        const preguntas = JSON.parse(contenido);
-
-        if (!Array.isArray(preguntas)) throw new Error("Respuesta no válida");
-
-        mensajeDiv.textContent = `✅ Se generaron ${preguntas.length} preguntas.`;
-        mensajeDiv.className = 'mensaje exito';
-
-        for (const p of preguntas) {
-          const { texto_pregunta, opciones, respuesta_correcta, fundamento } = p;
-
-          resultadoDiv.innerHTML += `
-            <div class="pregunta-card">
-              <strong>${texto_pregunta}</strong><br>
-              Opciones: ${opciones.join(', ')}<br>
-              ✔️ Correcta: ${respuesta_correcta}<br>
-              🧠 Fundamento: ${fundamento}
-            </div>
-          `;
-
-          const { error } = await supabase.from('preguntas').insert([{
-            pregunta: texto_pregunta,
-            opciones: JSON.stringify(opciones),
-            respuesta_correcta,
-            fundamento,
-            origen: 'gemini'
-          }]);
-
-          if (error) {
-            resultadoDiv.innerHTML += `<p class="error">❌ Error al guardar: ${error.message}</p>`;
-          }
+        const typedarray = new Uint8Array(reader.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+        let texto = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          texto += content.items.map(item => item.str).join(" ") + " ";
         }
-
+        resolve(texto);
       } catch (err) {
-        console.error(err);
-        mensajeDiv.textContent = "❌ Error al comunicarse con Gemini.";
-        mensajeDiv.className = 'mensaje error';
+        reject(err);
       }
-    }
-
-    async function extraerTextoDePDF(file) {
-      const reader = new FileReader();
-      return new Promise((resolve, reject) => {
-        reader.onload = async () => {
-          try {
-            const typedarray = new Uint8Array(reader.result);
-            const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
-            let texto = '';
-            for (let i = 1; i <= pdf.numPages; i++) {
-              const page = await pdf.getPage(i);
-              const content = await page.getTextContent();
-              texto += content.items.map(item => item.str).join(' ') + ' ';
-            }
-            resolve(texto);
-          } catch (err) {
-            reject(err);
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-      });
-    }
-  </script>
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+</script>
 </body>
 </html>
