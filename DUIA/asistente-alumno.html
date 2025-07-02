@@ -91,6 +91,7 @@
       cursor: pointer;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header>
@@ -112,6 +113,7 @@ const supabase = supabase.createClient(
   'https://nindbkahmhbutpizbgpg.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
 );
+
 let preguntas = [
   {
     texto: "¿Cuál es la capital de Francia?",
@@ -201,7 +203,6 @@ async function seleccionar(opcion) {
 }
 
 function mostrarResultado() {
-  // También podrías guardar un resumen del examen aquí si lo deseas
   document.getElementById('contenido').innerHTML = '';
   document.getElementById('temporizador').innerHTML = '';
   document.getElementById('resultadoFinal').textContent = `Has completado el ${modoJuego}. Obtuviste ${puntaje} de ${preguntas.length} correctas.`;
@@ -249,13 +250,15 @@ function actualizarTemporizador() {
 async function guardarRespuesta(pregunta, respuesta, correcta, esCorrecta) {
   const { error } = await supabase.from('respuestas').insert([
     {
-      pregunta_id: null, // si tienes relacion, si no puedes omitir
+      pregunta_id: null,
       respuesta: respuesta,
       modo: modoJuego,
       fecha: new Date().toISOString(),
       origen: window.navigator.userAgent,
       es_correcta: esCorrecta,
-      texto_pregunta: pregunta // si quieres guardar el texto
+      texto_pregunta: pregunta,
+      curso: 'Curso 1',
+      materia: 'Matemática'
     }
   ]);
   if (error) console.error('Error al guardar respuesta:', error);
