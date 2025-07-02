@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DUIA - Creador de Preguntas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --azul-unju: #003366;
@@ -86,6 +87,11 @@
   </div>
 
   <script>
+    const supabase = supabase.createClient(
+      'https://nindbkahmhbutpizbgpg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+    );
+
     const preguntasGeneradas = [
       {
         texto: "¿Qué es la célula?",
@@ -102,19 +108,16 @@
       const card = document.createElement("div");
       card.className = "card";
 
-      // Pregunta editable
       const inputPregunta = document.createElement("input");
       inputPregunta.value = pregunta.texto;
       card.appendChild(inputPregunta);
 
-      // Botón voz
       const vozP = document.createElement("button");
       vozP.className = "voz";
       vozP.textContent = "🔊";
       vozP.onclick = () => hablar(inputPregunta.value);
       card.appendChild(vozP);
 
-      // Opciones editables
       const opcionesDiv = document.createElement("div");
       pregunta.opciones.forEach((opcion, i) => {
         const inputOpcion = document.createElement("input");
@@ -127,7 +130,6 @@
         opcionesDiv.appendChild(vozO);
       });
 
-      // Agregar nueva opción
       const btnAgregar = document.createElement("button");
       btnAgregar.textContent = "+ Agregar opción";
       btnAgregar.onclick = () => {
@@ -137,7 +139,6 @@
       card.appendChild(opcionesDiv);
       card.appendChild(btnAgregar);
 
-      // Seleccionar respuesta correcta
       const selector = document.createElement("select");
       pregunta.opciones.forEach(op => {
         const opt = document.createElement("option");
@@ -148,11 +149,34 @@
       });
       card.appendChild(selector);
 
-      // Fundamento editable
       const textoFundamento = document.createElement("textarea");
       textoFundamento.rows = 3;
       textoFundamento.value = pregunta.fundamento;
       card.appendChild(textoFundamento);
+
+      const btnGuardar = document.createElement("button");
+      btnGuardar.textContent = "💾 Guardar pregunta";
+      btnGuardar.onclick = async () => {
+        const opciones = Array.from(opcionesDiv.querySelectorAll("input"))
+          .map(i => i.value.trim())
+          .filter(o => o);
+
+        const preguntaFinal = {
+          texto: inputPregunta.value.trim(),
+          opciones,
+          respuesta_correcta: selector.value,
+          fundamento: textoFundamento.value.trim()
+        };
+
+        const { data, error } = await supabase.from('preguntas').insert([preguntaFinal]);
+
+        if (error) {
+          alert("❌ Error al guardar: " + error.message);
+        } else {
+          alert("✅ Pregunta guardada con éxito en Supabase.");
+        }
+      };
+      card.appendChild(btnGuardar);
 
       contenedor.appendChild(card);
     });
