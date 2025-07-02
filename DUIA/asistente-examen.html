@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>DUIA - Asistente de Examen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DUIA - Examen</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
@@ -14,22 +14,26 @@
     }
     body {
       font-family: 'Poppins', sans-serif;
+      margin: 0;
       background: var(--gris);
       color: #333;
-      margin: 0;
     }
     header {
-      background: var(--blanco);
-      padding: 10px 20px;
-      border-bottom: 4px solid var(--azul-unju);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      background-color: var(--blanco);
+      padding: 10px 20px;
+      border-bottom: 4px solid var(--azul-unju);
     }
     header img { height: 50px; }
-    header h1 { font-size: 1.2rem; color: var(--azul-unju); margin: 0; }
+    header h1 {
+      color: var(--azul-unju);
+      font-size: 1.2rem;
+      margin: 0;
+    }
     .container {
-      max-width: 700px;
+      max-width: 800px;
       margin: 30px auto;
       padding: 20px;
       background: var(--blanco);
@@ -58,6 +62,10 @@
       width: 100%;
       max-width: 400px;
     }
+    #resultadoFinal {
+      font-size: 1.2rem;
+      margin-top: 20px;
+    }
     input, select {
       display: block;
       margin: 10px auto;
@@ -66,7 +74,7 @@
       max-width: 400px;
       font-size: 1rem;
     }
-    #identificacion button {
+    #identificacion button, button {
       background-color: var(--azul-unju);
       color: white;
       padding: 10px 20px;
@@ -74,150 +82,194 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    #resultadoFinal {
-      font-size: 1.2rem;
+    table {
       margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #eee;
     }
   </style>
 </head>
 <body>
-  <header>
-    <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
-    <h1>SIED - Facultad de Ingeniería - UNJu</h1>
-  </header>
+<header>
+  <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo UNJu">
+  <h1>SIED - Facultad de Ingeniería - UNJu</h1>
+</header>
 
-  <div class="container" id="identificacion">
-    <h2>👤 Ingreso al Examen</h2>
-    <input type="text" id="nombre" placeholder="Nombre completo" required />
-    <input type="text" id="codigo" placeholder="Código institucional" required />
-    <select id="rol">
-      <option value="alumno">Alumno</option>
-      <option value="docente">Docente</option>
-    </select>
-    <button onclick="iniciarExamen()">Comenzar Examen</button>
-  </div>
+<div class="container" id="identificacion">
+  <h2>👤 Ingreso al Examen</h2>
+  <input type="text" id="nombre" placeholder="Nombre completo" required />
+  <input type="text" id="codigo" placeholder="Código institucional" required />
+  <select id="rol">
+    <option value="alumno">Alumno</option>
+    <option value="docente">Docente</option>
+  </select>
+  <button onclick="iniciarExamen()">Comenzar Examen</button>
+</div>
 
-  <div class="container" style="display:none;" id="contenido-container">
-    <div class="timer" id="temporizador"></div>
-    <div class="pregunta" id="pregunta"></div>
-    <div id="opciones"></div>
-    <div id="resultadoFinal"></div>
-  </div>
+<div class="container" style="display:none;" id="contenido-container">
+  <div class="timer" id="temporizador"></div>
+  <div class="pregunta" id="pregunta"></div>
+  <div id="opciones"></div>
+  <div id="resultadoFinal"></div>
+</div>
 
-  <script>
-    const supabase = supabase.createClient(
-      'https://nindbkahmhbutpizbgpg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
-    );
+<div class="container">
+  <h3>📊 Respuestas Registradas</h3>
+  <select id="filtroMateria" onchange="mostrarTablaRespuestas()">
+    <option value="">Todas las materias</option>
+    <option value="Matemática">Matemática</option>
+    <option value="Lengua">Lengua</option>
+    <option value="Historia">Historia</option>
+    <!-- Agregá más si lo necesitás -->
+  </select>
+  <button onclick="mostrarTablaRespuestas()">Ver respuestas</button>
+  <div id="tablaRespuestas"></div>
+</div>
 
-    let preguntas = [], indice = 0, puntaje = 0, tiempo = 30, temporizadorID;
-    let nombre = "", codigo = "", rol = "";
+<script>
+const supabase = supabase.createClient(
+  'https://nindbkahmhbutpizbgpg.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+);
 
-    async function iniciarExamen() {
-      nombre = document.getElementById('nombre').value.trim();
-      codigo = document.getElementById('codigo').value.trim();
-      rol = document.getElementById('rol').value;
+let preguntas = [], indice = 0, puntaje = 0, tiempo = 30, temporizadorID;
+let nombre = "", codigo = "", rol = "";
 
-      if (!nombre || !codigo) {
-        alert('Por favor, completá todos los campos.');
-        return;
-      }
+async function iniciarExamen() {
+  nombre = document.getElementById('nombre').value.trim();
+  codigo = document.getElementById('codigo').value.trim();
+  rol = document.getElementById('rol').value;
 
-      const { data, error } = await supabase.from('preguntas').select('*').limit(10);
-      if (error || !data.length) {
-        document.getElementById('pregunta').innerText = '❌ No se pudieron cargar preguntas.';
-        return;
-      }
+  if (!nombre || !codigo) return alert('Por favor, completá todos los campos.');
 
-      preguntas = data;
-      document.getElementById('identificacion').style.display = 'none';
-      document.getElementById('contenido-container').style.display = 'block';
-      siguientePregunta();
-    }
+  const { data, error } = await supabase.from('preguntas').select('*').limit(10);
+  if (error || !data.length) {
+    document.getElementById('pregunta').innerText = '❌ No se pudieron cargar preguntas.';
+    return;
+  }
 
-    function siguientePregunta() {
-      if (indice >= preguntas.length) {
-        mostrarResultado();
-        return;
-      }
+  preguntas = data;
+  document.getElementById('identificacion').style.display = 'none';
+  document.getElementById('contenido-container').style.display = 'block';
+  indice = 0; puntaje = 0;
+  siguientePregunta();
+}
 
-      const p = preguntas[indice];
-      document.getElementById('pregunta').textContent = p.pregunta || 'Sin texto';
-      const opcionesDiv = document.getElementById('opciones');
-      opcionesDiv.innerHTML = '';
+function siguientePregunta() {
+  if (indice >= preguntas.length) return mostrarResultado();
 
-      let opciones = [];
-      try { opciones = JSON.parse(p.opciones || '[]'); } catch {}
+  const p = preguntas[indice];
+  document.getElementById('pregunta').textContent = p.pregunta || 'Sin texto';
+  const opcionesDiv = document.getElementById('opciones');
+  opcionesDiv.innerHTML = '';
 
-      opciones.forEach(op => {
-        const btn = document.createElement('button');
-        btn.className = 'opcion';
-        btn.textContent = op;
-        btn.onclick = () => responder(op, p);
-        opcionesDiv.appendChild(btn);
-      });
+  let opciones = [];
+  try { opciones = JSON.parse(p.opciones || '[]'); } catch {}
 
-      iniciarTemporizador();
-    }
+  opciones.forEach(op => {
+    const btn = document.createElement('button');
+    btn.className = 'opcion';
+    btn.textContent = op;
+    btn.onclick = () => responder(op, p);
+    opcionesDiv.appendChild(btn);
+  });
 
-    function iniciarTemporizador() {
-      tiempo = 30;
-      actualizarTemporizador();
-      temporizadorID = setInterval(() => {
-        tiempo--;
-        actualizarTemporizador();
-        if (tiempo <= 0) {
-          clearInterval(temporizadorID);
-          guardarRespuesta(null, preguntas[indice], false);
-          indice++;
-          siguientePregunta();
-        }
-      }, 1000);
-    }
+  iniciarTemporizador();
+}
 
-    function actualizarTemporizador() {
-      document.getElementById('temporizador').textContent = `⏱ Tiempo restante: ${tiempo}s`;
-    }
-
-    function responder(opcion, pregunta) {
+function iniciarTemporizador() {
+  tiempo = 30;
+  actualizarTemporizador();
+  temporizadorID = setInterval(() => {
+    tiempo--;
+    actualizarTemporizador();
+    if (tiempo <= 0) {
       clearInterval(temporizadorID);
-      const correcta = pregunta.respuesta_correcta;
-      const esCorrecta = opcion === correcta;
-      if (esCorrecta) puntaje++;
-      guardarRespuesta(opcion, pregunta, esCorrecta);
+      guardarRespuesta(null, preguntas[indice], false);
       indice++;
       siguientePregunta();
     }
+  }, 1000);
+}
 
-    async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
-      await supabase.from('respuestas').insert({
-        pregunta_id: pregunta.id,
-        respuesta: respuesta || 'Sin respuesta',
-        es_correcta: esCorrecta,
-        modo: 'examen',
-        fecha: new Date().toISOString(),
-        curso: 'Curso 1',
-        materia: 'Matemática',
-        nombre,
-        codigo,
-        rol
-      });
-    }
+function actualizarTemporizador() {
+  document.getElementById('temporizador').textContent = `⏱ Tiempo restante: ${tiempo}s`;
+}
 
-    function mostrarResultado() {
-      document.getElementById('pregunta').innerHTML = '';
-      document.getElementById('opciones').innerHTML = '';
-      document.getElementById('temporizador').innerHTML = '';
-      document.getElementById('resultadoFinal').textContent =
-        `📘 Has finalizado el examen. Obtuviste ${puntaje} de ${preguntas.length} respuestas correctas.`;
-    }
+function responder(opcion, pregunta) {
+  clearInterval(temporizadorID);
+  const esCorrecta = opcion === pregunta.respuesta_correcta;
+  if (esCorrecta) puntaje++;
+  guardarRespuesta(opcion, pregunta, esCorrecta);
+  indice++;
+  siguientePregunta();
+}
 
-    // Si el alumno cambia de ventana, pasa automáticamente a la siguiente
-    window.onblur = () => {
-      clearInterval(temporizadorID);
-      indice++;
-      siguientePregunta();
-    };
-  </script>
+function mostrarResultado() {
+  document.getElementById('pregunta').innerHTML = '';
+  document.getElementById('opciones').innerHTML = '';
+  document.getElementById('temporizador').innerHTML = '';
+  document.getElementById('resultadoFinal').textContent =
+    `📘 Has finalizado el examen. Obtuviste ${puntaje} de ${preguntas.length} respuestas correctas.`;
+}
+
+async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
+  await supabase.from('respuestas').insert({
+    pregunta_id: pregunta.id,
+    respuesta: respuesta || 'Sin respuesta',
+    modo: 'examen',
+    fecha: new Date().toISOString(),
+    curso: 'Curso 1',
+    materia: pregunta.materia || 'Matemática',
+    nombre,
+    codigo,
+    rol
+  });
+}
+
+async function mostrarTablaRespuestas() {
+  const contenedor = document.getElementById("tablaRespuestas");
+  contenedor.innerHTML = "🔄 Cargando respuestas...";
+
+  const filtro = document.getElementById("filtroMateria").value;
+  let query = supabase.from("respuestas").select("*").order("fecha", { ascending: false }).limit(50);
+  if (filtro) query = query.eq("materia", filtro);
+
+  const { data, error } = await query;
+
+  if (error) {
+    contenedor.innerHTML = "❌ Error al cargar las respuestas.";
+    console.error(error);
+    return;
+  }
+
+  if (!data.length) {
+    contenedor.innerHTML = "⚠️ No hay respuestas registradas.";
+    return;
+  }
+
+  let tabla = `<table><tr>
+    <th>🆔</th><th>Pregunta ID</th><th>Respuesta</th>
+    <th>Modo</th><th>Curso</th><th>Materia</th><th>Fecha</th>
+  </tr>`;
+  data.forEach(r => {
+    tabla += `<tr>
+      <td>${r.id}</td><td>${r.pregunta_id}</td><td>${r.respuesta}</td>
+      <td>${r.modo}</td><td>${r.curso}</td><td>${r.materia}</td>
+      <td>${new Date(r.fecha).toLocaleString()}</td>
+    </tr>`;
+  });
+  tabla += "</table>";
+  contenedor.innerHTML = tabla;
+}
+</script>
 </body>
 </html>
