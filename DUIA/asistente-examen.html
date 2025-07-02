@@ -138,13 +138,15 @@ const supabase = supabase.createClient(
 );
 
 let preguntas = [], indice = 0, puntaje = 0, tiempo = 30, temporizadorID;
-let nombre = "", codigo = "", rol = "";
+let nombre = "", codigo = "", rol = "", inicioSesion = null;
 
 async function iniciarExamen() {
   nombre = document.getElementById('nombre').value.trim();
   codigo = document.getElementById('codigo').value.trim();
   rol = document.getElementById('rol').value;
   if (!nombre || !codigo) return alert('Por favor, completá todos los campos.');
+
+  inicioSesion = new Date();
 
   const { data, error } = await supabase.from('preguntas').select('*').limit(10);
   if (error || !data.length) {
@@ -209,6 +211,18 @@ function mostrarResultado() {
   document.getElementById('opciones').innerHTML = '';
   document.getElementById('temporizador').innerHTML = '';
   document.getElementById('resultadoFinal').textContent = `📘 Has finalizado el examen. Obtuviste ${puntaje} de ${preguntas.length} respuestas correctas.`;
+  guardarSesion();
+}
+
+async function guardarSesion() {
+  const fin = new Date();
+  const duracion = Math.floor((fin - inicioSesion) / 1000);
+  await supabase.from('usuarios_sesion').insert({
+    nombre, codigo, rol,
+    fecha_inicio: inicioSesion.toISOString(),
+    fecha_fin: fin.toISOString(),
+    duracion_segundos: duracion
+  });
 }
 
 async function guardarRespuesta(respuesta, pregunta, esCorrecta) {
