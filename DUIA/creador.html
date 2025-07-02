@@ -74,6 +74,12 @@
       cursor: pointer;
       margin-left: 6px;
     }
+    .mensaje {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    .exito { color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
@@ -84,6 +90,13 @@
 
   <div class="container" id="contenedor-preguntas">
     <p>Cargando preguntas generadas con IA...</p>
+  </div>
+
+  <hr>
+
+  <div class="container">
+    <h2>📚 Preguntas ya guardadas</h2>
+    <div id="preguntas-guardadas"></div>
   </div>
 
   <script>
@@ -102,9 +115,12 @@
     ];
 
     const contenedor = document.getElementById("contenedor-preguntas");
+    const guardadas = document.getElementById("preguntas-guardadas");
     contenedor.innerHTML = "";
 
-    preguntasGeneradas.forEach((pregunta, index) => {
+    preguntasGeneradas.forEach((pregunta) => renderCard(pregunta, contenedor));
+
+    function renderCard(pregunta, destino) {
       const card = document.createElement("div");
       card.className = "card";
 
@@ -119,9 +135,11 @@
       card.appendChild(vozP);
 
       const opcionesDiv = document.createElement("div");
-      pregunta.opciones.forEach((opcion, i) => {
+      const opcionesInputs = [];
+      pregunta.opciones.forEach((opcion) => {
         const inputOpcion = document.createElement("input");
         inputOpcion.value = opcion;
+        opcionesInputs.push(inputOpcion);
         opcionesDiv.appendChild(inputOpcion);
         const vozO = document.createElement("button");
         vozO.className = "voz";
@@ -134,6 +152,7 @@
       btnAgregar.textContent = "+ Agregar opción";
       btnAgregar.onclick = () => {
         const nuevaOpcion = document.createElement("input");
+        opcionesInputs.push(nuevaOpcion);
         opcionesDiv.appendChild(nuevaOpcion);
       };
       card.appendChild(opcionesDiv);
@@ -154,12 +173,19 @@
       textoFundamento.value = pregunta.fundamento;
       card.appendChild(textoFundamento);
 
+      const mensaje = document.createElement("div");
+      mensaje.className = "mensaje";
+      card.appendChild(mensaje);
+
       const btnGuardar = document.createElement("button");
       btnGuardar.textContent = "💾 Guardar pregunta";
       btnGuardar.onclick = async () => {
-        const opciones = Array.from(opcionesDiv.querySelectorAll("input"))
-          .map(i => i.value.trim())
-          .filter(o => o);
+        const opciones = opcionesInputs.map(i => i.value.trim()).filter(o => o);
+        if (!inputPregunta.value.trim() || !opciones.length || !selector.value || !textoFundamento.value.trim()) {
+          mensaje.textContent = "⚠️ Todos los campos son obligatorios.";
+          mensaje.className = "mensaje error";
+          return;
+        }
 
         const preguntaFinal = {
           texto: inputPregunta.value.trim(),
@@ -168,18 +194,21 @@
           fundamento: textoFundamento.value.trim()
         };
 
-        const { data, error } = await supabase.from('preguntas').insert([preguntaFinal]);
+        const { error } = await supabase.from('preguntas').insert([preguntaFinal]);
 
         if (error) {
-          alert("❌ Error al guardar: " + error.message);
+          mensaje.textContent = "❌ Error al guardar: " + error.message;
+          mensaje.className = "mensaje error";
         } else {
-          alert("✅ Pregunta guardada con éxito en Supabase.");
+          mensaje.textContent = "✅ Pregunta guardada con éxito.";
+          mensaje.className = "mensaje exito";
+          cargarPreguntasGuardadas();
         }
       };
       card.appendChild(btnGuardar);
 
-      contenedor.appendChild(card);
-    });
+      destino.appendChild(card);
+    }
 
     function hablar(texto) {
       if ('speechSynthesis' in window) {
@@ -190,6 +219,19 @@
         alert("Tu navegador no soporta texto a voz.");
       }
     }
+
+    async function cargarPreguntasGuardadas() {
+      guardadas.innerHTML = "<p>Cargando...</p>";
+      const { data, error } = await supabase.from('preguntas').select('*').order('id', { ascending: false });
+      if (error) {
+        guardadas.innerHTML = "<p>Error al cargar preguntas.</p>";
+        return;
+      }
+      guardadas.innerHTML = "";
+      data.forEach(p => renderCard(p, guardadas));
+    }
+
+    cargarPreguntasGuardadas();
   </script>
 </body>
 </html>
