@@ -1,116 +1,176 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DUIA - Creador de Cuestionarios</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        /* ... (Todo el CSS que ya teníamos, no cambia) ... */
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-        :root {
-            --color-primario: #003366; --color-acento: #D44E41; --color-fondo: #f4f6f9;
-            --color-texto: #333333; --color-blanco: #ffffff; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
-        }
-        body { font-family: 'Roboto', sans-serif; background-color: var(--color-fondo); color: var(--color-texto); margin: 0; }
-        .creator-container { width: 100%; max-width: 960px; margin: 30px auto; padding: 20px; }
-        .creator-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
-        .creator-header .title-group { display: flex; align-items: center; gap: 20px; }
-        .creator-header img { height: 60px; }
-        .creator-header h1 { color: var(--color-primario); margin: 0; }
-        .step-card { background-color: var(--color-blanco); border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: var(--shadow-suave); }
-        .step-card h2 { margin-top: 0; color: var(--color-primario); border-bottom: 2px solid var(--color-acento); padding-bottom: 10px; margin-bottom: 20px; }
-        .upload-area input[type="file"] { margin-bottom: 15px; font-size: 1rem; }
-        .btn { padding: 12px 25px; font-size: 1rem; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-        .btn-primario { background-color: var(--color-primario); color: var(--color-blanco); }
-        .btn-primario:disabled { background-color: #5a6268; cursor: not-allowed;}
-        .loader { text-align: center; padding: 40px; display: none; }
-        .loader p { font-size: 1.1rem; font-weight: 500; color: var(--color-primario); }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DUIA - Creador de Preguntas</title>
+  <style>
+    :root {
+      --azul-unju: #003366;
+      --rojo-unju: #d44e41;
+      --gris-fondo: #f4f6f9;
+      --blanco: #ffffff;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--gris-fondo);
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--blanco);
+      padding: 10px 20px;
+      border-bottom: 4px solid var(--azul-unju);
+    }
+    header img {
+      height: 60px;
+    }
+    header h1 {
+      color: var(--azul-unju);
+      font-size: 1.3rem;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .card {
+      background: var(--blanco);
+      border-left: 5px solid var(--azul-unju);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .card h3 {
+      margin-top: 0;
+      color: var(--azul-unju);
+    }
+    .opciones button {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 12px;
+      border-radius: 6px;
+      border: 2px solid #ccc;
+      background-color: #f9f9f9;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+    }
+    .opciones button.correcta {
+      border-color: green;
+      background-color: #e0ffe0;
+    }
+    .opciones button.incorrecta {
+      border-color: red;
+      background-color: #ffe0e0;
+    }
+    .fundamento {
+      margin-top: 10px;
+      background: #eef2f5;
+      padding: 10px;
+      border-left: 3px solid var(--rojo-unju);
+    }
+    .voz, .microfono {
+      font-size: 1.2rem;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+  </style>
 </head>
 <body>
-    <div class="creator-container">
-        <header class="creator-header">
-            <div class="title-group">
-                <h1>DUIA: Creador de Cuestionarios</h1>
-            </div>
-            <img src="https://i.imgur.com/qL3gL8g.png" alt="Logo Facultad de Ingeniería UNJu">
-        </header>
+  <header>
+    <img src="logo-fi-unju-institucional-horizontal-786x202.png" alt="Logo Facultad de Ingeniería UNJu">
+    <h1>SIED - Facultad de Ingeniería - UNJu</h1>
+  </header>
 
-        <section class="step-card">
-            <h2>Paso 1: Cargar Material de Estudio</h2>
-            <div class="upload-area">
-                <p>Sube el archivo PDF de la unidad o tema que quieres evaluar.</p>
-                <input type="file" id="pdf-upload" accept="application/pdf">
-                <br>
-                <button class="btn btn-primario" id="generate-btn" disabled>Generar Preguntas con IA</button>
-            </div>
-            <div class="loader" id="loader">
-                <p id="loader-text">...</p>
-            </div>
-        </section>
-        </div>
+  <div class="container" id="contenedor-preguntas">
+    <p>Cargando preguntas generadas con IA...</p>
+  </div>
 
-    <script>
-        // --- Conexión al proyecto DUIA ---
-        const SUPABASE_URL = 'https://nindbkahmhbutpizbgpg.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  <script>
+    // Simulación de preguntas generadas (reemplazar por el array real)
+    const preguntasGeneradas = [
+      {
+        texto: "¿Qué es la célula?",
+        opciones: ["Unidad de vida", "Molécula", "Tejido", "Orgánulo"],
+        respuesta_correcta: "Unidad de vida",
+        fundamento: "La célula es la unidad funcional y estructural de todos los seres vivos."
+      },
+      {
+        texto: "¿Cuál es el planeta más cercano al Sol?",
+        opciones: ["Venus", "Tierra", "Marte", "Mercurio"],
+        respuesta_correcta: "Mercurio",
+        fundamento: "Mercurio es el planeta más próximo al Sol en el sistema solar."
+      }
+    ];
 
-        const pdfUploadInput = document.getElementById('pdf-upload');
-        const generateBtn = document.getElementById('generate-btn');
-        const loader = document.getElementById('loader');
-        const loaderText = document.getElementById('loader-text');
-        
-        pdfUploadInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                generateBtn.disabled = false;
-            }
-        });
-        
-        generateBtn.addEventListener('click', async () => {
-            const file = pdfUploadInput.files[0];
-            if (!file) { alert('Por favor, selecciona un archivo PDF primero.'); return; }
+    const contenedor = document.getElementById("contenedor-preguntas");
+    contenedor.innerHTML = "";
 
-            try {
-                // 1. Extraer texto del PDF
-                loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
-                loader.style.display = 'block';
-                generateBtn.disabled = true;
-                
-                const fileBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise;
-                let textoCompleto = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    textoCompleto += textContent.items.map(item => item.str).join(' ');
-                }
-                
-                loaderText.textContent = 'Texto extraído. Conectando con Gemini para generar preguntas... 🧠';
+    preguntasGeneradas.forEach((pregunta, index) => {
+      const card = document.createElement("div");
+      card.className = "card";
 
-                // 2. LLAMAR A NUESTRA FUNCIÓN SERVERLESS
-                const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
-                    body: { textoPDF: textoCompleto },
-                });
+      const h3 = document.createElement("h3");
+      h3.innerHTML = `💬 ${pregunta.texto} <button class="voz" onclick="hablar('${pregunta.texto}')">🔊</button>`;
+      card.appendChild(h3);
 
-                if (error) { throw error; }
-                
-                // 3. ¡ÉXITO! Mostramos las preguntas en la consola
-                loader.style.display = 'none';
-                generateBtn.disabled = false;
-                console.log("--- ¡PREGUNTAS RECIBIDAS DE GEMINI! ---");
-                console.log(data); 
-                alert("¡Preguntas generadas con éxito! Revisa la consola (F12) para ver el resultado.");
+      const opcionesDiv = document.createElement("div");
+      opcionesDiv.className = "opciones";
 
-            } catch (error) {
-                loader.style.display = 'none';
-                generateBtn.disabled = false;
-                console.error('Error en el proceso:', error);
-                alert(`Ocurrió un error al contactar a la IA: ${error.message}`);
-            }
-        });
-    </script>
+      pregunta.opciones.forEach(opcion => {
+        const btn = document.createElement("button");
+        btn.textContent = opcion;
+        btn.onclick = () => verificar(btn, opcion === pregunta.respuesta_correcta, card, pregunta);
+
+        const vozBtn = document.createElement("button");
+        vozBtn.className = "voz";
+        vozBtn.innerHTML = "🔊";
+        vozBtn.onclick = e => { e.stopPropagation(); hablar(opcion); };
+
+        btn.appendChild(vozBtn);
+        opcionesDiv.appendChild(btn);
+      });
+
+      card.appendChild(opcionesDiv);
+      contenedor.appendChild(card);
+    });
+
+    function verificar(boton, esCorrecta, card, pregunta) {
+      const botones = card.querySelectorAll(".opciones button");
+      botones.forEach(b => b.disabled = true);
+      if (esCorrecta) {
+        boton.classList.add("correcta");
+      } else {
+        boton.classList.add("incorrecta");
+        const correcta = Array.from(botones).find(b => b.textContent.includes(pregunta.respuesta_correcta));
+        if (correcta) correcta.classList.add("correcta");
+      }
+      const f = document.createElement("div");
+      f.className = "fundamento";
+      f.textContent = `📝 Fundamento: ${pregunta.fundamento}`;
+      card.appendChild(f);
+    }
+
+    function hablar(texto) {
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(texto);
+        utter.lang = 'es-ES';
+        window.speechSynthesis.speak(utter);
+      } else {
+        alert("Tu navegador no soporta texto a voz.");
+      }
+    }
+  </script>
 </body>
 </html>
+
