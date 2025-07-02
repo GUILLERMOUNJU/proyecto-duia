@@ -48,9 +48,7 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
-    }
-    button:hover {
-      background: #0059b3;
+      margin-top: 10px;
     }
     .pregunta-card {
       background: var(--blanco);
@@ -80,15 +78,19 @@
   <button onclick="procesarTexto()">✨ Generar con Gemini</button>
   <div class="mensaje" id="mensaje"></div>
   <div id="resultadoGemini"></div>
+
+  <h2>🗃️ Preguntas ya guardadas</h2>
+  <button onclick="cargarPreguntas()">🔍 Ver preguntas guardadas</button>
+  <div id="preguntasGuardadas"></div>
+
   <button onclick="location.href='index.html'">🔙 Volver al Inicio</button>
 </div>
 
 <script>
 const API_KEY = "AIzaSyBCjDUPyVAcJQy7KRqEpn885BrFF2DmISE";
-
 const supabase = supabase.createClient(
   'https://nindbkahmhbutpizbgpg.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...vsQ' // acortado por privacidad
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
 );
 
 async function procesarTexto() {
@@ -151,19 +153,17 @@ Texto:
         </div>
       `;
 
-      // Guardar en Supabase
-      await supabase.from('preguntas').insert({
+      await supabase.from("preguntas").insert({
         pregunta: p.texto_pregunta,
         opciones: JSON.stringify(p.opciones),
         respuesta_correcta: p.respuesta_correcta,
         fundamento: p.fundamento,
-        origen: 'gemini'
+        origen: "gemini"
       });
     }
-
   } catch (err) {
     console.error(err);
-    mensaje.textContent = "❌ Error al generar o guardar preguntas.";
+    mensaje.textContent = "❌ Error al generar preguntas con Gemini.";
     mensaje.className = "mensaje error";
   }
 }
@@ -188,6 +188,27 @@ async function extraerTextoDePDF(file) {
     };
     reader.onerror = reject;
     reader.readAsArrayBuffer(file);
+  });
+}
+
+async function cargarPreguntas() {
+  const contenedor = document.getElementById("preguntasGuardadas");
+  contenedor.innerHTML = "⏳ Cargando...";
+  const { data, error } = await supabase.from("preguntas").select("*").order("id", { ascending: false }).limit(10);
+  if (error) {
+    contenedor.innerHTML = "<p class='error'>Error al cargar preguntas.</p>";
+    return;
+  }
+  contenedor.innerHTML = "";
+  data.forEach(p => {
+    contenedor.innerHTML += `
+      <div class="pregunta-card">
+        <strong>${p.pregunta}</strong><br>
+        Opciones: ${JSON.parse(p.opciones).join(', ')}<br>
+        ✔️ Correcta: ${p.respuesta_correcta}<br>
+        🧠 Fundamento: ${p.fundamento}
+      </div>
+    `;
   });
 }
 </script>
