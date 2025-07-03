@@ -6,11 +6,11 @@
     <title>DUIA - Creador de Cuestionarios</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <style>
+        /* El CSS no cambia */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
         :root {
             --color-primario: #003366; --color-acento: #D44E41; --color-fondo: #f4f6f9;
-            --color-texto: #333333; --color-verde: #28a745; --color-rojo: #dc3545;
-            --color-blanco: #ffffff; --color-gris-claro: #e9ecef; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --color-texto: #333333; --color-blanco: #ffffff; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
         body { font-family: 'Roboto', sans-serif; background-color: var(--color-fondo); color: var(--color-texto); margin: 0; }
         .creator-container { width: 100%; max-width: 960px; margin: 30px auto; padding: 20px; }
@@ -27,11 +27,9 @@
         .loader { text-align: center; padding: 40px; display: none; }
         .loader p { font-size: 1.1rem; font-weight: 500; color: var(--color-primario); }
         .question-list { display: flex; flex-direction: column; gap: 20px; }
-        .question-card { background-color: var(--color-gris-claro); border: 1px solid #dee2e6; border-left: 5px solid var(--color-primario); border-radius: 8px; padding: 20px; }
+        .question-card { background-color: #e9ecef; border: 1px solid #dee2e6; border-left: 5px solid var(--color-primario); border-radius: 8px; padding: 20px; }
         .question-card p { font-weight: 500; margin: 0 0 15px 0; }
         .question-card ol { padding-left: 20px; margin: 0 0 20px 0; }
-        .question-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-        .question-controls .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--color-verde); flex-grow: 1; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -54,8 +52,7 @@
         
         <section class="step-card" id="review-section" style="display:none;">
             <h2>Paso 2: Revisar Preguntas Sugeridas</h2>
-            <div class="question-list" id="question-list">
-                </div>
+            <div id="question-list"></div>
         </section>
     </div>
 
@@ -79,33 +76,42 @@
         generateBtn.addEventListener('click', async () => {
             const file = pdfUploadInput.files[0];
             if (!file) { alert('Por favor, selecciona un archivo PDF primero.'); return; }
+
             try {
                 loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
                 loader.style.display = 'block';
                 generateBtn.disabled = true;
 
-                const fileBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: fileBuffer }).promise;
-                let textoCompleto = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    textoCompleto += textContent.items.map(item => item.str).join(' ');
-                }
-                
-                loaderText.textContent = 'Texto extraído. Enviando a la IA de Gemini... 🧠';
+                // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+                // Usamos el método tradicional y compatible de FileReader
+                const fileReader = new FileReader();
+                fileReader.readAsArrayBuffer(file);
+                fileReader.onload = async (e) => {
+                    const pdfData = new Uint8Array(e.target.result);
+                    const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                    let textoCompleto = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const textContent = await page.getTextContent();
+                        textoCompleto += textContent.items.map(item => item.str).join(' ');
+                    }
+                    
+                    console.log("Texto extraído. Enviando a la IA...");
+                    loaderText.textContent = 'Texto extraído. Conectando con Gemini para generar preguntas... 🧠';
 
-                const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
-                    body: { textoPDF: textoCompleto },
-                });
+                    // Llamamos a la función de Supabase con el texto extraído
+                    const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
+                        body: { textoPDF: textoCompleto },
+                    });
 
-                if (error) { throw error; }
-                
-                loader.style.display = 'none';
-                generateBtn.disabled = false;
-                
-                // ¡Éxito! Ahora pintamos las preguntas en la pantalla
-                mostrarPreguntasSugeridas(data.preguntas);
+                    if (error) { throw error; }
+                    
+                    loader.style.display = 'none';
+                    generateBtn.disabled = false;
+                    console.log("--- ¡PREGUNTAS RECIBIDAS DE GEMINI! ---", data);
+                    alert("¡Preguntas generadas con éxito!");
+                    mostrarPreguntasSugeridas(data.preguntas);
+                };
 
             } catch (error) {
                 loader.style.display = 'none';
@@ -118,35 +124,19 @@
         function mostrarPreguntasSugeridas(preguntas) {
             if (!preguntas || preguntas.length === 0) {
                 questionListContainer.innerHTML = '<p>La IA no pudo generar preguntas para este texto.</p>';
-                reviewSection.style.display = 'block';
-                return;
-            }
-
-            questionListContainer.innerHTML = ''; // Limpiamos la lista
-            preguntas.forEach((pregunta, index) => {
-                const card = document.createElement('div');
-                card.className = 'question-card';
-
-                // Creamos el HTML para las opciones
-                let opcionesHTML = '<ol type="A">';
-                pregunta.opciones.forEach(op => {
-                    opcionesHTML += `<li>${op}</li>`;
+            } else {
+                questionListContainer.innerHTML = ''; 
+                preguntas.forEach((pregunta, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'question-card';
+                    let opcionesHTML = '<ol type="A">';
+                    pregunta.opciones.forEach(op => { opcionesHTML += `<li>${op}</li>`; });
+                    opcionesHTML += '</ol>';
+                    card.innerHTML = `<p><strong>Pregunta ${index + 1}:</strong> ${pregunta.texto_pregunta}</p>${opcionesHTML}<p><strong>Respuesta:</strong> ${pregunta.respuesta_correcta}</p>`;
+                    questionListContainer.appendChild(card);
                 });
-                opcionesHTML += '</ol>';
-
-                card.innerHTML = `
-                    <p><strong>Pregunta ${index + 1}:</strong> ${pregunta.texto_pregunta}</p>
-                    ${opcionesHTML}
-                    <p><strong>Respuesta Correcta:</strong> ${pregunta.respuesta_correcta}</p>
-                    <p><em><strong>Fundamento:</strong> ${pregunta.fundamento}</em></p>
-                    <div class="question-controls">
-                        <label class="checkbox-label"><input type="checkbox"> Aprobar</label>
-                    </div>
-                `;
-                questionListContainer.appendChild(card);
-            });
-
-            reviewSection.style.display = 'block'; // Mostramos la sección de revisión
+            }
+            reviewSection.style.display = 'block';
         }
     </script>
 </body>
