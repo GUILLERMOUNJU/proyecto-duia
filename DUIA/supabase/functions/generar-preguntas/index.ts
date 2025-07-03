@@ -1,24 +1,26 @@
-// supabase/functions/generar-preguntas/index.ts
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
-// Cabeceras CORS que tú mismo definiste. ¡Perfecto!
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Usamos '*' para desarrollo, luego podemos cambiarlo
+  'Access-Control-Allow-Origin': '*', // Cambia a tu dominio en producción
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-async function handler(req: Request): Promise<Response> {
-  // Manejo de la petición OPTIONS (pre-flight)
+serve(async (req: Request): Promise<Response> => {
+  // Manejo de preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Parsear JSON
     const { textoPDF } = await req.json();
-    if (!textoPDF) throw new Error("No se proporcionó texto de PDF.");
+    if (!textoPDF || textoPDF.length < 20) {
+      throw new Error('El texto del PDF es demasiado corto o está vacío.');
+    }
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     if (!GEMINI_API_KEY) throw new Error("La clave de API de Gemini no está configurada.");
-    
+
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
     const prompt = `
@@ -40,23 +42,34 @@ async function handler(req: Request): Promise<Response> {
       ${textoPDF.substring(0, 15000)}
       ---
     `;
-    
+
+    // Llamada a la API de Gemini
     const geminiResponse = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     });
-    
+
     if (!geminiResponse.ok) {
-      const errorBody = await geminiResponse.text();
-      throw new Error(`Error en la respuesta de Gemini: ${errorBody}`);
+      const errorText = await geminiResponse.text();
+      throw new Error(`Error en la respuesta de Gemini: ${errorText}`);
     }
 
     const geminiData = await geminiResponse.json();
-    const generatedText = geminiData.candidates[0].content.parts[0].text
-      .replace(/```json/g, '').replace(/```/g, '').trim();
+    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
-    return new Response(generatedText, {
+    // Limpiar delimitadores ```json
+    const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    // Validar que sea JSON válido
+    let parsedJSON;
+    try {
+      parsedJSON = JSON.parse(cleanText);
+    } catch {
+      throw new Error('La IA respondió un JSON malformado o incompleto.');
+    }
+
+    return new Response(JSON.stringify(parsedJSON), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
@@ -67,6 +80,4 @@ async function handler(req: Request): Promise<Response> {
       status: 500,
     });
   }
-}
-
-Deno.serve(handler);
+});
