@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DUIA - Crear con Gemini</title>
+  <title>DUIA - Crear con Gemini (Diagnóstico)</title>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -70,7 +70,7 @@
 </head>
 <body>
   <header>
-    <img src="../logo-fi-unju-institucional-285x159.jpg" alt="Logo Facultad de Ingeniería UNJu">
+    <img src="logo-fi-unju-institucional-285x159.jpg" alt="Logo Facultad de Ingeniería UNJu">
     <h1>DUIA - Crear con Gemini</h1>
   </header>
 
@@ -99,7 +99,7 @@
 
     window.procesarTexto = async function () {
       const estado = document.getElementById('estado');
-      estado.innerText = '⏳ Enviando PDF a Gemini...';
+      estado.innerText = '🧪 Enviando datos a Supabase...';
 
       try {
         const archivo = document.getElementById('archivo').files[0];
@@ -111,12 +111,13 @@
 
         const resp = await fetch('https://nindbkahmhbutpizbgpg.supabase.co/functions/v1/generar-preguntas', {
           method: 'POST',
+          headers: {
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+          },
           body: formData
         });
 
-        const contentType = resp.headers.get('content-type');
-        const isJson = contentType && contentType.includes('application/json');
-        const resultado = isJson ? await resp.json() : { error: 'Respuesta inválida del servidor (no es JSON).' };
+        const resultado = await resp.json();
 
         if (!resp.ok) {
           console.error('❌ Error recibido del servidor:', resultado);
@@ -124,11 +125,11 @@
           return;
         }
 
-        estado.innerText = '✅ Preguntas generadas correctamente';
+        estado.innerText = '✅ Preguntas generadas exitosamente';
         console.log('✅ Respuesta:', resultado);
       } catch (err) {
         console.error('❌ Error al procesar:', err);
-        estado.innerText = '❌ Error inesperado. Consultá la consola.';
+        estado.innerText = '❌ Error al generar preguntas con Gemini';
       }
     }
 
@@ -146,4 +147,3 @@
   </script>
 </body>
 </html>
-
