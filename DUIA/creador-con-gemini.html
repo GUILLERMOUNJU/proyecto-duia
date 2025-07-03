@@ -75,10 +75,10 @@
   </header>
 
   <div class="container">
-    <h2>📄 Generar preguntas con Gemini</h2>
+    <h2>📄 Subí un PDF para generar preguntas</h2>
     <input type="file" id="archivo" accept="application/pdf" />
     <textarea id="textoManual" placeholder="O escribí el texto aquí..."></textarea>
-    <button onclick="procesarTexto()">⚙️ Generar con Gemini</button>
+    <button onclick="procesarTexto()">✨ Generar Preguntas con Gemini</button>
     <p id="estado" class="error"></p>
     <h3>📚 Preguntas ya guardadas</h3>
     <button onclick="verGuardadas()">📘 Ver preguntas guardadas</button>
@@ -92,9 +92,11 @@
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
+
     const supabase = createClient(
       'https://nindbkahmhbutpizbgpg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ'
+      API_KEY
     );
 
     window.procesarTexto = async function () {
@@ -109,10 +111,16 @@
         if (archivo) formData.append('archivo', archivo);
         if (textoManual) formData.append('texto', textoManual);
 
-        const resp = await fetch('/functions/v1/generar-preguntas', {
-          method: 'POST',
-          body: formData
-        });
+        const resp = await fetch(
+          'https://nindbkahmhbutpizbgpg.supabase.co/functions/v1/generar-preguntas',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${API_KEY}`
+            },
+            body: formData
+          }
+        );
 
         const resultado = await resp.json();
 
