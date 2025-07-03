@@ -1,17 +1,15 @@
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
+// supabase/functions/generar-preguntas/index.ts
 
-// Cabeceras CORS para permitir la comunicación desde cualquier origen
+// Cabeceras CORS que tú mismo definiste. ¡Perfecto!
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': '*', // Usamos '*' para desarrollo, luego podemos cambiarlo
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-console.log("Función 'generar-preguntas' iniciada.");
-
-serve(async (req) => {
-  // Manejo de la petición OPTIONS (pre-vuelo de CORS)
+async function handler(req: Request): Promise<Response> {
+  // Manejo de la petición OPTIONS (pre-flight)
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -69,4 +67,6 @@ serve(async (req) => {
       status: 500,
     });
   }
-})
+}
+
+Deno.serve(handler);
