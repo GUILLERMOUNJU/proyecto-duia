@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DUIA - Creador de Cuestionarios</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
         :root {
@@ -31,6 +30,10 @@
         .question-card { background-color: var(--color-gris-claro); border: 1px solid #dee2e6; border-left: 5px solid var(--color-primario); border-radius: 8px; padding: 20px; }
         .question-card p { font-weight: 500; margin: 0 0 15px 0; }
         .question-card ol { padding-left: 20px; margin: 0 0 20px 0; }
+        .question-controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .question-controls .checkbox-label { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--color-verde); flex-grow: 1; cursor: pointer; }
+        .btn-secundario { background-color: #6c757d; color: var(--color-blanco); }
+        .btn-peligro { background-color: var(--color-rojo); color: var(--color-blanco); }
     </style>
 </head>
 <body>
@@ -53,10 +56,12 @@
         
         <section class="step-card" id="review-section" style="display:none;">
             <h2>Paso 2: Revisar Preguntas Sugeridas</h2>
-            <div class="question-list" id="question-list"></div>
+            <div class="question-list" id="question-list">
+                </div>
         </section>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://nindbkahmhbutpizbgpg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
@@ -73,64 +78,94 @@
             generateBtn.disabled = e.target.files.length === 0;
         });
         
-        generateBtn.addEventListener('click', () => {
+        generateBtn.addEventListener('click', async () => {
             const file = pdfUploadInput.files[0];
             if (!file) { alert('Por favor, selecciona un archivo PDF primero.'); return; }
-            
-            loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
-            loader.style.display = 'block';
-            generateBtn.disabled = true;
+            try {
+                loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
+                loader.style.display = 'block';
+                generateBtn.disabled = true;
 
-            const fileReader = new FileReader();
-            fileReader.readAsArrayBuffer(file);
-            fileReader.onload = async (e) => {
-                try {
-                    const pdfData = new Uint8Array(e.target.result);
-                    const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-                    let textoCompleto = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        textoCompleto += textContent.items.map(item => item.str).join(' ');
+                const fileReader = new FileReader();
+                fileReader.readAsArrayBuffer(file);
+                fileReader.onload = async (e) => {
+                    try {
+                        const pdfData = new Uint8Array(e.target.result);
+                        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                        let textoCompleto = '';
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            textoCompleto += textContent.items.map(item => item.str).join(' ');
+                        }
+                        
+                        loaderText.textContent = 'Texto extraído. Enviando a la IA de Gemini... 🧠';
+
+                        const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
+                            body: { textoPDF: textoCompleto },
+                        });
+
+                        if (error) { throw error; }
+                        
+                        loader.style.display = 'none';
+                        generateBtn.disabled = false;
+                        
+                        // ¡ÉXITO! Llamamos a la función para mostrar las preguntas
+                        mostrarPreguntasSugeridas(data.preguntas);
+
+                    } catch (error) {
+                        handleError(error);
                     }
-                    
-                    loaderText.textContent = 'Texto extraído. Enviando a la IA de Gemini... 🧠';
-
-                    const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
-                        body: { textoPDF: textoCompleto },
-                    });
-
-                    if (error) { throw error; }
-                    
-                    loader.style.display = 'none';
-                    generateBtn.disabled = false;
-                    mostrarPreguntasSugeridas(data.preguntas);
-
-                } catch (error) {
-                    loader.style.display = 'none';
-                    generateBtn.disabled = false;
-                    console.error('Error en el proceso:', error);
-                    alert(`Ocurrió un error: ${error.message}`);
-                }
-            };
+                };
+            } catch (error) {
+                handleError(error);
+            }
         });
 
         function mostrarPreguntasSugeridas(preguntas) {
             if (!preguntas || preguntas.length === 0) {
-                questionListContainer.innerHTML = '<p>La IA no pudo generar preguntas para este texto.</p>';
+                questionListContainer.innerHTML = '<p>La IA no pudo generar preguntas para este texto. Intenta con otro documento.</p>';
             } else {
                 questionListContainer.innerHTML = ''; 
                 preguntas.forEach((pregunta, index) => {
                     const card = document.createElement('div');
                     card.className = 'question-card';
+
                     let opcionesHTML = '<ol type="A">';
-                    pregunta.opciones.forEach(op => { opcionesHTML += `<li>${op}</li>`; });
+                    if (pregunta.opciones && Array.isArray(pregunta.opciones)) {
+                         pregunta.opciones.forEach(op => { opcionesHTML += `<li>${escapeHTML(op)}</li>`; });
+                    }
                     opcionesHTML += '</ol>';
-                    card.innerHTML = `<p><strong>Pregunta ${index + 1}:</strong> ${pregunta.texto_pregunta}</p>${opcionesHTML}<p><strong>Respuesta Correcta:</strong> ${pregunta.respuesta_correcta}</p><p><em><strong>Fundamento:</strong> ${pregunta.fundamento}</em></p>`;
+
+                    card.innerHTML = `
+                        <p><strong>Pregunta ${index + 1}:</strong> ${escapeHTML(pregunta.texto_pregunta)}</p>
+                        ${opcionesHTML}
+                        <p><strong>Respuesta Correcta:</strong> ${escapeHTML(pregunta.respuesta_correcta)}</p>
+                        <p><em><strong>Fundamento:</strong> ${escapeHTML(pregunta.fundamento)}</em></p>
+                        <div class="question-controls">
+                            <label class="checkbox-label"><input type="checkbox" checked> Aprobar</label>
+                            <button class="btn btn-secundario">Editar</button>
+                            <button class="btn btn-peligro">Descartar</button>
+                        </div>
+                    `;
                     questionListContainer.appendChild(card);
                 });
             }
-            reviewSection.style.display = 'block';
+            reviewSection.style.display = 'block'; // Mostramos la sección de revisión
+        }
+        
+        function handleError(error) {
+            loader.style.display = 'none';
+            generateBtn.disabled = false;
+            console.error('Error en el proceso:', error);
+            alert(`Ocurrió un error: ${error.message}`);
+        }
+
+        // Función de seguridad para evitar inyección de HTML
+        function escapeHTML(str) {
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
         }
     </script>
 </body>
