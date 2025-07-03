@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DUIA - Creador de Cuestionarios</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* El CSS no cambia */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
         :root {
             --color-primario: #003366; --color-acento: #D44E41; --color-fondo: #f4f6f9;
-            --color-texto: #333333; --color-blanco: #ffffff; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --color-texto: #333333; --color-verde: #28a745; --color-rojo: #dc3545;
+            --color-blanco: #ffffff; --color-gris-claro: #e9ecef; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
         body { font-family: 'Roboto', sans-serif; background-color: var(--color-fondo); color: var(--color-texto); margin: 0; }
         .creator-container { width: 100%; max-width: 960px; margin: 30px auto; padding: 20px; }
@@ -27,7 +28,7 @@
         .loader { text-align: center; padding: 40px; display: none; }
         .loader p { font-size: 1.1rem; font-weight: 500; color: var(--color-primario); }
         .question-list { display: flex; flex-direction: column; gap: 20px; }
-        .question-card { background-color: #e9ecef; border: 1px solid #dee2e6; border-left: 5px solid var(--color-primario); border-radius: 8px; padding: 20px; }
+        .question-card { background-color: var(--color-gris-claro); border: 1px solid #dee2e6; border-left: 5px solid var(--color-primario); border-radius: 8px; padding: 20px; }
         .question-card p { font-weight: 500; margin: 0 0 15px 0; }
         .question-card ol { padding-left: 20px; margin: 0 0 20px 0; }
     </style>
@@ -42,7 +43,7 @@
         <section class="step-card">
             <h2>Paso 1: Cargar Material de Estudio</h2>
             <div class="upload-area">
-                <p>Sube el archivo PDF de la unidad o tema que quieres evaluar.</p>
+                <p>Sube el archivo PDF de la unidad que quieres evaluar.</p>
                 <input type="file" id="pdf-upload" accept="application/pdf">
                 <br>
                 <button class="btn btn-primario" id="generate-btn" disabled>Generar Preguntas con IA</button>
@@ -52,11 +53,10 @@
         
         <section class="step-card" id="review-section" style="display:none;">
             <h2>Paso 2: Revisar Preguntas Sugeridas</h2>
-            <div id="question-list"></div>
+            <div class="question-list" id="question-list"></div>
         </section>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         const SUPABASE_URL = 'https://nindbkahmhbutpizbgpg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
@@ -73,20 +73,18 @@
             generateBtn.disabled = e.target.files.length === 0;
         });
         
-        generateBtn.addEventListener('click', async () => {
+        generateBtn.addEventListener('click', () => {
             const file = pdfUploadInput.files[0];
             if (!file) { alert('Por favor, selecciona un archivo PDF primero.'); return; }
+            
+            loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
+            loader.style.display = 'block';
+            generateBtn.disabled = true;
 
-            try {
-                loaderText.textContent = 'Leyendo y extrayendo texto del PDF... 📄';
-                loader.style.display = 'block';
-                generateBtn.disabled = true;
-
-                // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-                // Usamos el método tradicional y compatible de FileReader
-                const fileReader = new FileReader();
-                fileReader.readAsArrayBuffer(file);
-                fileReader.onload = async (e) => {
+            const fileReader = new FileReader();
+            fileReader.readAsArrayBuffer(file);
+            fileReader.onload = async (e) => {
+                try {
                     const pdfData = new Uint8Array(e.target.result);
                     const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
                     let textoCompleto = '';
@@ -96,10 +94,8 @@
                         textoCompleto += textContent.items.map(item => item.str).join(' ');
                     }
                     
-                    console.log("Texto extraído. Enviando a la IA...");
-                    loaderText.textContent = 'Texto extraído. Conectando con Gemini para generar preguntas... 🧠';
+                    loaderText.textContent = 'Texto extraído. Enviando a la IA de Gemini... 🧠';
 
-                    // Llamamos a la función de Supabase con el texto extraído
                     const { data, error } = await supabaseClient.functions.invoke('generar-preguntas', {
                         body: { textoPDF: textoCompleto },
                     });
@@ -108,17 +104,15 @@
                     
                     loader.style.display = 'none';
                     generateBtn.disabled = false;
-                    console.log("--- ¡PREGUNTAS RECIBIDAS DE GEMINI! ---", data);
-                    alert("¡Preguntas generadas con éxito!");
                     mostrarPreguntasSugeridas(data.preguntas);
-                };
 
-            } catch (error) {
-                loader.style.display = 'none';
-                generateBtn.disabled = false;
-                console.error('Error en el proceso:', error);
-                alert(`Ocurrió un error: ${error.message}`);
-            }
+                } catch (error) {
+                    loader.style.display = 'none';
+                    generateBtn.disabled = false;
+                    console.error('Error en el proceso:', error);
+                    alert(`Ocurrió un error: ${error.message}`);
+                }
+            };
         });
 
         function mostrarPreguntasSugeridas(preguntas) {
@@ -132,7 +126,7 @@
                     let opcionesHTML = '<ol type="A">';
                     pregunta.opciones.forEach(op => { opcionesHTML += `<li>${op}</li>`; });
                     opcionesHTML += '</ol>';
-                    card.innerHTML = `<p><strong>Pregunta ${index + 1}:</strong> ${pregunta.texto_pregunta}</p>${opcionesHTML}<p><strong>Respuesta:</strong> ${pregunta.respuesta_correcta}</p>`;
+                    card.innerHTML = `<p><strong>Pregunta ${index + 1}:</strong> ${pregunta.texto_pregunta}</p>${opcionesHTML}<p><strong>Respuesta Correcta:</strong> ${pregunta.respuesta_correcta}</p><p><em><strong>Fundamento:</strong> ${pregunta.fundamento}</em></p>`;
                     questionListContainer.appendChild(card);
                 });
             }
