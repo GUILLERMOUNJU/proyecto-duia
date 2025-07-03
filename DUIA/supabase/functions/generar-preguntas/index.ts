@@ -1,26 +1,26 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+// supabase/functions/generar-preguntas/index.ts
 
+// Cabeceras CORS para permitir la comunicación
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*', // Cambia a tu dominio en producción
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
-serve(async (req: Request): Promise<Response> => {
-  // Manejo de preflight CORS
+async function handler(req: Request): Promise<Response> {
+  // Manejo de la petición OPTIONS (pre-flight)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Parsear JSON
     const { textoPDF } = await req.json();
-    if (!textoPDF || textoPDF.length < 20) {
+    if (!textoPDF || textoPDF.length < 50) { // Tu excelente validación
       throw new Error('El texto del PDF es demasiado corto o está vacío.');
     }
 
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     if (!GEMINI_API_KEY) throw new Error("La clave de API de Gemini no está configurada.");
-
+    
     const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
 
     const prompt = `
@@ -42,26 +42,24 @@ serve(async (req: Request): Promise<Response> => {
       ${textoPDF.substring(0, 15000)}
       ---
     `;
-
-    // Llamada a la API de Gemini
+    
     const geminiResponse = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
     });
-
+    
     if (!geminiResponse.ok) {
       const errorText = await geminiResponse.text();
       throw new Error(`Error en la respuesta de Gemini: ${errorText}`);
     }
 
     const geminiData = await geminiResponse.json();
+    
+    // Tu excelente y seguro manejo de la respuesta
     const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-
-    // Limpiar delimitadores ```json
     const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
 
-    // Validar que sea JSON válido
     let parsedJSON;
     try {
       parsedJSON = JSON.parse(cleanText);
@@ -80,4 +78,7 @@ serve(async (req: Request): Promise<Response> => {
       status: 500,
     });
   }
-});
+}
+
+// Usamos el método moderno para iniciar el servidor
+Deno.serve(handler);
