@@ -63,7 +63,10 @@
         try {
           const respuesta = await fetch("https://nindbkahmhbutpizbgpg.functions.supabase.co/functions/v1/generar-con-gemini", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ"
+            },
             body: JSON.stringify({ texto: textoCompleto })
           });
 
@@ -84,6 +87,22 @@
               `;
               output.appendChild(div);
             });
+
+            // 🎁 BOTÓN DE DESCARGA JSON
+            const botonDescarga = document.createElement("button");
+            botonDescarga.textContent = "📥 Descargar preguntas (JSON)";
+            botonDescarga.onclick = () => {
+              const blob = new Blob([JSON.stringify(data.preguntasGeneradas, null, 2)], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = "preguntas-generadas.json";
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            };
+            output.appendChild(botonDescarga);
+
           } else {
             output.innerHTML = "Error al generar preguntas: " + data.error;
           }
@@ -100,4 +119,3 @@
 
 </body>
 </html>
-
