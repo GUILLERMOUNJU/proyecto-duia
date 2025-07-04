@@ -1,121 +1,83 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Generador con IA (Gemini)</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Generador de Preguntas</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
+      font-family: sans-serif;
+      padding: 40px;
+    }
+    h1 {
+      font-size: 28px;
+      color: #003366;
     }
     button {
-      margin-top: 1rem;
-      padding: 0.5rem 1rem;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
     }
-    .pregunta {
-      margin-top: 1rem;
-      padding: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      background-color: #f4f4f4;
+    input[type="file"] {
+      margin-bottom: 15px;
     }
   </style>
 </head>
 <body>
+  <h1>Generador de Preguntas</h1>
+  <input type="file" id="fileInput" accept=".pdf">
+  <button onclick="generar()">Generar preguntas</button>
 
-  <h1>Crear Preguntas con IA (Gemini)</h1>
+  <pre id="output"></pre>
 
-  <input type="file" id="fileInput" accept=".pdf" />
-  <button onclick="procesarPDF()">Generar con IA</button>
-
-  <div id="output"></div>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>
-    async function procesarPDF() {
-      const fileInput = document.getElementById('fileInput');
-      const output = document.getElementById('output');
-      output.innerHTML = "Procesando PDF...";
+    async function extraerTextoPDF(archivo) {
+      const pdfData = new Uint8Array(await archivo.arrayBuffer());
+      const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      let texto = "";
 
-      if (!fileInput.files.length) {
-        output.innerHTML = "Por favor seleccioná un archivo PDF.";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const pagina = await pdf.getPage(i);
+        const contenido = await pagina.getTextContent();
+        const textoPagina = contenido.items.map(item => item.str).join(" ");
+        texto += textoPagina + "\n";
+      }
+
+      return texto;
+    }
+
+    async function generar() {
+      const archivo = document.getElementById("fileInput").files[0];
+      const output = document.getElementById("output");
+      output.textContent = "Procesando...";
+
+      if (!archivo) {
+        output.textContent = "Por favor seleccioná un archivo PDF.";
         return;
       }
 
-      const file = fileInput.files[0];
-      const fileReader = new FileReader();
+      try {
+        const texto = await extraerTextoPDF(archivo);
 
-      fileReader.onload = async function () {
-        const typedArray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+        const respuesta = await fetch("https://nindbkahmhbutpizbgpg.supabase.co/functions/v1/generar-con-gemini", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ texto })
+        });
 
-        let textoCompleto = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          const textoPagina = content.items.map(item => item.str).join(' ');
-          textoCompleto += textoPagina + '\n';
+        const resultado = await respuesta.json();
+
+        if (resultado.error) {
+          throw new Error(resultado.error);
         }
 
-        output.innerHTML = "Enviando texto a IA...";
-
-        try {
-          const respuesta = await fetch("https://nindbkahmhbutpizbgpg.functions.supabase.co/functions/v1/generar-con-gemini", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ"
-            },
-            body: JSON.stringify({ texto: textoCompleto })
-          });
-
-          const data = await respuesta.json();
-
-          if (data.status === "ok") {
-            output.innerHTML = "<h2>Preguntas generadas por IA:</h2>";
-            data.preguntasGeneradas.forEach((pregunta, index) => {
-              const div = document.createElement('div');
-              div.className = 'pregunta';
-              div.innerHTML = `
-                <strong>${index + 1}. ${pregunta.pregunta}</strong><br>
-                <ul>
-                  ${pregunta.opciones.map(op => `<li>${op}</li>`).join('')}
-                </ul>
-                <em>Respuesta correcta:</em> ${pregunta.respuestaCorrecta}<br>
-                <em>Justificación:</em> ${pregunta.justificacion}
-              `;
-              output.appendChild(div);
-            });
-
-            // 🎁 BOTÓN DE DESCARGA JSON
-            const botonDescarga = document.createElement("button");
-            botonDescarga.textContent = "📥 Descargar preguntas (JSON)";
-            botonDescarga.onclick = () => {
-              const blob = new Blob([JSON.stringify(data.preguntasGeneradas, null, 2)], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = "preguntas-generadas.json";
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            };
-            output.appendChild(botonDescarga);
-
-          } else {
-            output.innerHTML = "Error al generar preguntas: " + data.error;
-          }
-
-        } catch (error) {
-          console.error(error);
-          output.innerHTML = "Error en la solicitud: " + error.message;
-        }
-      };
-
-      fileReader.readAsArrayBuffer(file);
+        output.textContent = JSON.stringify(resultado.preguntasGeneradas, null, 2);
+      } catch (error) {
+        output.textContent = "Error al generar preguntas: " + error.message;
+      }
     }
   </script>
-
 </body>
 </html>
