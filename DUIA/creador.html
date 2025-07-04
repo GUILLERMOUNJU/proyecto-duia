@@ -61,7 +61,7 @@
         output.innerHTML = "Enviando texto a Supabase...";
 
         try {
-          const respuesta = await fetch("https://<TU_PROJECTO>.functions.supabase.co/functions/v1/generar-preguntas", {
+          const respuesta = await fetch("https://nindbkahmhbutpizbgpg.functions.supabase.co/functions/v1/generar-preguntas", {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
@@ -87,20 +87,4 @@
                 <em>Justificación:</em> ${pregunta.justificacion}
               `;
               output.appendChild(div);
-            });
-          } else {
-            output.innerHTML = "Error al generar preguntas: " + data.error;
-          }
-
-        } catch (error) {
-          console.error(error);
-          output.innerHTML = "Error en la solicitud: " + error.message;
-        }
-      };
-
-      fileReader.readAsArrayBuffer(file);
-    }
-  </script>
-
-</body>
-</html>
+            })
