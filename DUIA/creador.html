@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Generador de Preguntas</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
   <style>
@@ -16,91 +16,77 @@
     }
     .pregunta {
       margin-top: 1rem;
-      padding: 1rem;
+      background-color: #f8f9fa;
       border: 1px solid #ccc;
+      padding: 1rem;
       border-radius: 8px;
-      background-color: #f4f4f4;
+    }
+    pre {
+      background-color: #efefef;
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
     }
   </style>
 </head>
 <body>
-
   <h1>Generador de Preguntas</h1>
 
-  <input type="file" id="fileInput" accept=".pdf" />
-  <button onclick="procesarPDF()">Generar preguntas</button>
+  <input type="file" id="file-input" accept=".pdf" />
+  <button id="btn-generar">Generar preguntas</button>
 
-  <div id="output"></div>
+  <div id="resultado"></div>
 
   <script>
-    async function procesarPDF() {
-      const fileInput = document.getElementById('fileInput');
-      const output = document.getElementById('output');
-      output.innerHTML = "Procesando PDF...";
+    const btnGenerar = document.getElementById('btn-generar');
+    const fileInput = document.getElementById('file-input');
+    const resultadoDiv = document.getElementById('resultado');
 
-      if (!fileInput.files.length) {
-        output.innerHTML = "Por favor seleccioná un archivo PDF.";
+    async function extraerTextoPDF(file) {
+      const pdfData = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      let textoTotal = '';
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const textoPagina = content.items.map(item => item.str).join(' ');
+        textoTotal += textoPagina + '\n';
+      }
+      return textoTotal;
+    }
+
+    btnGenerar.addEventListener('click', async () => {
+      resultadoDiv.innerHTML = 'Procesando...';
+
+      const file = fileInput.files[0];
+      if (!file) {
+        resultadoDiv.innerHTML = 'Por favor selecciona un archivo PDF.';
         return;
       }
 
-      const file = fileInput.files[0];
-      const fileReader = new FileReader();
+      try {
+        const texto = await extraerTextoPDF(file);
 
-      fileReader.onload = async function () {
-        const typedArray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument(typedArray).promise;
+        const response = await fetch('https://nindbkahmhbutpizbgpg.supabase.co/functions/v1/generar-preguntas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ texto })
+        });
 
-        let textoCompleto = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          const textoPagina = content.items.map(item => item.str).join(' ');
-          textoCompleto += textoPagina + '\n';
+        if (!response.ok) {
+          throw new Error('Error en la función: ' + response.status);
         }
 
-        output.innerHTML = "Enviando texto a Supabase...";
+        const data = await response.json();
 
-        try {
-          const respuesta = await fetch("https://nindbkahmhbutpizbgpg.functions.supabase.co/functions/v1/generar-preguntas", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              texto: textoCompleto
-            })
-          });
-
-          const data = await respuesta.json();
-
-          if (data.status === "ok") {
-            output.innerHTML = "<h2>Preguntas generadas:</h2>";
-            data.preguntasGeneradas.forEach((pregunta, index) => {
-              const div = document.createElement('div');
-              div.className = 'pregunta';
-              div.innerHTML = `
-                <strong>${index + 1}. ${pregunta.pregunta}</strong><br>
-                <ul>
-                  ${pregunta.opciones.map(op => `<li>${op}</li>`).join('')}
-                </ul>
-                <em>Respuesta correcta:</em> ${pregunta.respuestaCorrecta}<br>
-                <em>Justificación:</em> ${pregunta.justificacion}
-              `;
-              output.appendChild(div);
-            });
-          } else {
-            output.innerHTML = "Error al generar preguntas: " + data.error;
-          }
-
-        } catch (error) {
-          console.error(error);
-          output.innerHTML = "Error en la solicitud: " + error.message;
-        }
-      };
-
-      fileReader.readAsArrayBuffer(file);
-    }
+        resultadoDiv.innerHTML = '<h2>Preguntas generadas:</h2><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+      } catch (error) {
+        resultadoDiv.innerHTML = '❌ Error al generar preguntas: ' + error.message;
+      }
+    });
   </script>
-
 </body>
 </html>
