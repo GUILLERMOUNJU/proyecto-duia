@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - DUIA</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        :root {
+            --color-primario: #003366; --color-acento: #D44E41; --color-fondo: #f4f6f9;
+            --color-texto: #333333; --color-verde: #28a745; --color-rojo: #dc3545;
+            --color-blanco: #ffffff; --color-gris-claro: #e9ecef; --shadow-suave: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        body { font-family: 'Poppins', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: var(--color-fondo); color: var(--color-texto); margin: 0; padding: 20px; }
+        .container { width: 100%; max-width: 900px; padding: 20px; }
+        #login-form, #contenido-protegido { background-color: var(--color-blanco); padding: 30px; border-radius: 8px; box-shadow: var(--shadow-suave); }
+        #login-form { max-width: 400px; margin: auto; }
+        #contenido-protegido { display: none; text-align: left; }
+        h1, h2 { text-align: center; color: var(--color-primario); }
+        h3 { margin-top: 30px; border-top: 1px solid #ddd; padding-top: 30px;}
+        label { display: block; margin-bottom: 5px; font-weight: 600; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #ccc; background-color: #fff; color: var(--color-texto); box-sizing: border-box; }
+        button { padding: 12px; background-color: var(--color-primario); color: var(--color-blanco); border: none; border-radius: 4px; font-weight: bold; font-size: 1rem; cursor: pointer; }
+        #login-form button { width: 100%; }
+        .error-msg { color: var(--color-rojo); text-align: center; margin-top: 15px; height: 20px; }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .admin-table th, .admin-table td { padding: 12px; border: 1px solid #ddd; text-align: left; vertical-align: middle; }
+        .admin-table th { background-color: var(--color-gris-claro); font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="login-form">
+            <h1>Panel de Control DUIA</h1>
+            <form id="form">
+                <label for="email">Email</label><input type="email" id="email" required>
+                <label for="password">Contraseña</label><input type="password" id="password" required>
+                <button type="submit">Ingresar</button>
+            </form>
+            <p id="error-message" class="error-msg"></p>
+        </div>
+        <div id="contenido-protegido">
+            <h2>Gestión de Contenido</h2>
+            <h3>Inventario de Preguntas Actual</h3>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Pregunta</th>
+                        <th>Respuesta Correcta</th>
+                        <th>Cuestionario al que pertenece</th>
+                    </tr>
+                </thead>
+                <tbody id="inventario-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://nindbkahmhbutpizbgpg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5pbmRia2FobWhidXRwaXpiZ3BnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzODExMTEsImV4cCI6MjA2Njk1NzExMX0.WcaK-r_cHb5rmImb4DDbYmOXi6uz05GJurBu1d21vsQ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loginForm = document.getElementById('form');
+        const loginContainer = document.getElementById('login-form');
+        const contenidoProtegido = document.getElementById('contenido-protegido');
+        const errorMessage = document.getElementById('error-message');
+        const inventarioBody = document.getElementById('inventario-body');
+
+        async function mostrarInventario() {
+            inventarioBody.innerHTML = '<tr><td colspan="3">Cargando...</td></tr>';
+            let { data: preguntas, error } = await supabaseClient
+                .from('preguntas')
+                .select(`*, cuestionarios(titulo)`);
+
+            if (error) {
+                console.error("Error al cargar inventario:", error);
+                inventarioBody.innerHTML = '<tr><td colspan="3">Error al cargar datos.</td></tr>';
+            } else {
+                inventarioBody.innerHTML = '';
+                if (preguntas.length === 0) {
+                    inventarioBody.innerHTML = '<tr><td colspan="3">No hay preguntas en la base de datos.</td></tr>';
+                }
+                preguntas.forEach(pregunta => {
+                    const fila = document.createElement('tr');
+                    fila.innerHTML = `
+                        <td>${pregunta.texto_pregunta}</td>
+                        <td>${pregunta.respuesta_correcta}</td>
+                        <td>${pregunta.cuestionarios ? pregunta.cuestionarios.titulo : 'No asignado'}</td>
+                    `;
+                    inventarioBody.appendChild(fila);
+                });
+            }
+        }
+        
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            errorMessage.textContent = ''; 
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                errorMessage.textContent = 'Email o contraseña incorrectos.';
+            } else {
+                loginContainer.style.display = 'none';
+                contenidoProtegido.style.display = 'block';
+                mostrarInventario();
+            }
+        });
+    </script>
+</body>
+</html>
