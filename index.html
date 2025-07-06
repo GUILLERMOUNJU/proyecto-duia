@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DUIA - Asistente Educativo</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        /* El CSS no cambia, puedes usar el que ya tenías */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         :root {
             --color-principal: #0d6efd; --color-fondo-tarjeta: #f8f9fa; --color-texto-oscuro: #212529;
             --color-correcto-fondo: #d1e7dd; --color-correcto-borde: #5cb85c;
@@ -25,8 +26,7 @@
         .btn-examen { background-color: #dc3545; }
         #timer { font-size: 1.2rem; font-weight: bold; color: #dc3545; text-align: center; margin-bottom: 15px; display: none; }
         .question-area { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; }
-        .speaker-icon { font-size: 2rem; color: var(--color-principal); cursor: pointer; transition: transform 0.2s; }
-        .speaker-icon:hover { transform: scale(1.1); }
+        .speaker-icon { font-size: 2rem; color: var(--color-principal); cursor: pointer; }
         .question-text { font-size: 1.3rem; font-weight: 600; margin: 0; flex-grow: 1; }
         .options-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
         .option-wrapper { display: flex; align-items: center; gap: 10px; }
@@ -34,18 +34,13 @@
         .option.correct { border-color: var(--color-correcto-borde); background-color: var(--color-correcto-fondo); font-weight: 700; border-width: 3px; }
         .option.incorrect { border-color: var(--color-incorrecto-borde); background-color: var(--color-incorrecto-fondo); font-weight: 700; border-width: 3px; }
         .option[disabled] { cursor: not-allowed; opacity: 0.7; }
-        .option-speaker { font-size: 1.5rem; cursor: pointer; color: #6c757d; transition: transform 0.2s; }
-        .option-speaker:hover { transform: scale(1.1); }
+        .option-speaker { font-size: 1.5rem; cursor: pointer; color: #6c757d; }
         .feedback-area { padding: 15px; border-radius: 12px; margin-top: 20px; border: 1px solid transparent; display: none; }
         .feedback-area.correct { display: block; background-color: var(--color-correcto-fondo); border-color: var(--color-correcto-borde); }
         .feedback-area.incorrect { display: block; background-color: var(--color-incorrecto-fondo); border-color: var(--color-incorrecto-borde); }
-        .feedback-area .title { font-weight: 700; font-size: 1.1rem; margin-bottom: 5px; }
-        .feedback-area.correct .title { color: #155724; }
-        .feedback-area.incorrect .title { color: #721c24; }
         .actions-container { display:flex; justify-content: center; margin-top:20px;}
-        .mic-btn { background-color: #e9ecef; color: #495057; border: 1px solid #ced4da; border-radius: 50%; font-size: 1.8rem; cursor: pointer; display: flex; justify-content: center; align-items: center; width: 65px; height: 65px; transition: all 0.2s; }
-        .mic-btn.listening { background-color: var(--color-incorrecto-fondo); color: var(--color-incorrecto-borde); animation: pulse 1.5s infinite; }
-        .mic-btn:disabled { cursor: not-allowed; background-color: #f5f5f5; }
+        .mic-btn { background-color: #e9ecef; border: 1px solid #ced4da; border-radius: 50%; font-size: 1.8rem; cursor: pointer; width: 65px; height: 65px; }
+        .mic-btn.listening { animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } 70% { box-shadow: 0 0 0 12px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
     </style>
 </head>
@@ -62,18 +57,10 @@
         <div id="quiz-container" style="display:none;">
             <main class="quiz-card">
                 <div id="timer"></div>
-                <div class="question-area">
-                    <span class="speaker-icon" id="speaker-btn" title="Leer pregunta">🔊</span>
-                    <h2 class="question-text" id="question-text"></h2>
-                </div>
+                <div class="question-area"><span class="speaker-icon" id="speaker-btn" title="Leer pregunta">🔊</span><h2 class="question-text" id="question-text"></h2></div>
                 <div class="options-container" id="options-container"></div>
-                <div class="feedback-area" id="feedback-area">
-                    <p class="title" id="feedback-title"></p>
-                    <p class="explanation" id="feedback-explanation"></p>
-                </div>
-                <div class="actions-container">
-                    <button class="mic-btn" id="mic-btn" title="Responder por voz">🎤</button>
-                </div>
+                <div class="feedback-area" id="feedback-area"><p class="title" id="feedback-title"></p><p class="explanation" id="feedback-explanation"></p></div>
+                <div class="actions-container"><button class="mic-btn" id="mic-btn" title="Responder por voz">🎤</button></div>
             </main>
         </div>
     </div>
@@ -89,7 +76,8 @@
               feedbackAreaEl = document.getElementById('feedback-area'), feedbackTitleEl = document.getElementById('feedback-title'),
               feedbackExplanationEl = document.getElementById('feedback-explanation'), micBtn = document.getElementById('mic-btn'), 
               timerEl = document.getElementById('timer');
-
+        
+        // La función de hablar
         function hablar(texto) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -98,13 +86,30 @@
                 window.speechSynthesis.speak(utterance);
             }
         }
+        
+        // La función de escuchar
+        function escucharRespuesta() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition || document.querySelector('.option:disabled')) { return; }
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            micBtn.classList.add('listening'); micBtn.disabled = true;
+            recognition.start();
+            recognition.onresult = function(event) {
+                const respuestaHablada = event.results[0][0].transcript.trim().toLowerCase().replace('.', '');
+                const botonCoincidente = Array.from(optionsContainerEl.querySelectorAll('.option')).find(btn => btn.textContent.trim().toLowerCase() === respuestaHablada);
+                if (botonCoincidente) { botonCoincidente.click(); } else { alert(`Respuesta no reconocida: "${respuestaHablada}".`); }
+            };
+            recognition.onend = function() { micBtn.classList.remove('listening'); if (!document.querySelector('.option:disabled')) { micBtn.disabled = false; } };
+            recognition.onerror = function(event) { micBtn.classList.remove('listening'); micBtn.disabled = false; };
+        }
 
+        // Lógica del Quiz
         function mostrarPregunta() {
             resetearEstado();
             const pregunta = todasLasPreguntas[preguntaActualIndex];
             questionTextEl.textContent = pregunta.texto_pregunta;
-
-            // La asignación de eventos se mueve aquí para asegurar que los elementos existan
+            
             const speakerBtn = document.getElementById('speaker-btn');
             if (speakerBtn) { speakerBtn.onclick = () => hablar(pregunta.texto_pregunta); }
             
@@ -115,15 +120,16 @@
                 const optionSpeaker = document.createElement('span'); optionSpeaker.className = 'speaker-icon option-speaker';
                 optionSpeaker.title = 'Leer opción'; optionSpeaker.textContent = '🔊';
                 optionSpeaker.addEventListener('click', e => { e.stopPropagation(); hablar(opcionTexto); });
-                wrapper.appendChild(button); wrapper.appendChild(optionSpeaker);
+                wrapper.appendChild(button);
+                wrapper.appendChild(optionSpeaker);
                 optionsContainerEl.appendChild(wrapper);
             });
         }
-
+        
         document.querySelector('.btn-entrenamiento').addEventListener('click', () => iniciarQuiz('practica'));
         document.querySelector('.btn-examen').addEventListener('click', () => iniciarQuiz('examen'));
         micBtn.addEventListener('click', escucharRespuesta);
-        
+
         async function iniciarQuiz(modo) {
             modoJuego = modo;
             document.getElementById('modo-inicio-container').style.display = 'none';
@@ -147,8 +153,41 @@
             const pregunta = todasLasPreguntas[preguntaActualIndex];
             const esCorrecta = botonSeleccionado.textContent === pregunta.respuesta_correcta;
             if (esCorrecta) puntaje++;
-            
             if (modoJuego === 'practica') {
                 botonSeleccionado.classList.add(esCorrecta ? 'correct' : 'incorrect');
                 if (!esCorrecta) {
                     const botonCorrecto = Array.from(optionsContainerEl.querySelectorAll('.option')).find(b => b.textContent === pregunta.respuesta_correcta);
+                    if (botonCorrecto) botonCorrecto.classList.add('correct');
+                }
+                feedbackTitleEl.textContent = esCorrecta ? '¡Correcto!' : 'Incorrecto';
+                feedbackExplanationEl.textContent = esCorrecta ? pregunta.fundamento : `La respuesta correcta es: "${pregunta.respuesta_correcta}". ` + pregunta.fundamento;
+                feedbackAreaEl.className = `feedback-area ${esCorrecta ? 'correct' : 'incorrect'}`;
+            }
+            setTimeout(siguientePregunta, modoJuego === 'practica' ? 4000 : 800);
+        }
+        function siguientePregunta() {
+            preguntaActualIndex++;
+            (preguntaActualIndex < todasLasPreguntas.length) ? mostrarPregunta() : finalizarQuiz(false);
+        }
+        function finalizarQuiz(porTiempo) {
+            clearInterval(timerInterval);
+            questionTextEl.textContent = '¡Cuestionario finalizado!';
+            let resultadoHTML = '';
+            if (porTiempo) resultadoHTML = '<p style="text-align:center; font-size:1.2rem;">¡Se acabó el tiempo!</p>';
+            const porcentaje = todasLasPreguntas.length > 0 ? ((puntaje / todasLasPreguntas.length) * 100).toFixed(0) : 0;
+            resultadoHTML += `<p style="text-align:center; font-size:1.2rem;">Resultado: ${puntaje} de ${todasLasPreguntas.length} correctas.<br><strong>Puntaje: ${porcentaje}%</strong></p>`;
+            optionsContainerEl.innerHTML = resultadoHTML;
+            feedbackAreaEl.style.display = 'none';
+            document.getElementById('speaker-btn').style.display = 'none';
+            micBtn.style.display = 'none';
+        }
+        function resetearEstado() {
+            feedbackAreaEl.style.display = 'none';
+            micBtn.disabled = false;
+            document.getElementById('speaker-btn').style.display = 'flex';
+            micBtn.style.display = 'flex';
+            optionsContainerEl.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
